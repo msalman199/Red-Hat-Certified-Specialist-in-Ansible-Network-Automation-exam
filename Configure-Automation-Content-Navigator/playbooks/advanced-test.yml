@@ -1,0 +1,43 @@
+---
+- name: Advanced Navigator Integration Test
+  hosts: localhost
+  gather_facts: yes
+  connection: local
+  
+  vars:
+    services_to_check:
+      - sshd
+      - chronyd
+    test_packages:
+      - curl
+      - wget
+      
+  tasks:
+    - name: Check system services
+      service_facts:
+      
+    - name: Display running services
+      debug:
+        msg: "Service {{ item }} is {{ ansible_facts.services[item + '.service'].state | default('not found') }}"
+      loop: "{{ services_to_check }}"
+      when: ansible_facts.services[item + '.service'] is defined
+      
+    - name: Check installed packages
+      package_facts:
+        manager: auto
+        
+    - name: Verify test packages
+      debug:
+        msg: "Package {{ item }} is {{ 'installed' if item in ansible_facts.packages else 'not installed' }}"
+      loop: "{{ test_packages }}"
+      
+    - name: Create comprehensive test report
+      template:
+        src: test-report.j2
+        dest: /tmp/navigator-test/test-report.txt
+      vars:
+        report_data:
+          hostname: "{{ ansible_hostname }}"
+          os_info: "{{ ansible_distribution }} {{ ansible_distribution_version }}"
+          memory_mb: "{{ ansible_memtotal_mb }}"
+          cpu_count: "{{ ansible_processor_vcpus }}"

@@ -1,0 +1,40 @@
+---
+- name: Test Ansible Navigator Integration
+  hosts: localhost
+  gather_facts: yes
+  connection: local
+  
+  vars:
+    test_message: "Navigator integration test successful"
+    
+  tasks:
+    - name: Display system information
+      debug:
+        msg: |
+          Hostname: {{ ansible_hostname }}
+          OS Family: {{ ansible_os_family }}
+          Python Version: {{ ansible_python_version }}
+          
+    - name: Create test directory
+      file:
+        path: /tmp/navigator-test
+        state: directory
+        mode: '0755'
+        
+    - name: Write test file
+      copy:
+        content: |
+          {{ test_message }}
+          Timestamp: {{ ansible_date_time.iso8601 }}
+          Executed by: {{ ansible_user_id }}
+        dest: /tmp/navigator-test/integration-test.txt
+        mode: '0644'
+        
+    - name: Verify file creation
+      stat:
+        path: /tmp/navigator-test/integration-test.txt
+      register: test_file
+      
+    - name: Display test results
+      debug:
+        msg: "Test file created successfully: {{ test_file.stat.exists }}"
