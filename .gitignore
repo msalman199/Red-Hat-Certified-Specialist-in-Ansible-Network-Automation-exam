@@ -1,0 +1,23 @@
+# Ansible specific
+*.retry
+.vault_pass
+host_vars/
+group_vars/secrets/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Editor specific
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Temporary files
+tmp/
+temp/

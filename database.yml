@@ -1,0 +1,31 @@
+---
+- name: Configure Database Server
+  hosts: dbservers
+  become: yes
+  vars:
+    mysql_root_password: "SecurePassword123!"
+    database_name: "webapp_db"
+  
+  tasks:
+    - name: Install MySQL/MariaDB
+      package:
+        name: "{{ 'mariadb-server' if ansible_os_family == 'RedHat' else 'mysql-server' }}"
+        state: present
+    
+    - name: Install Python MySQL library
+      package:
+        name: "{{ 'python3-PyMySQL' if ansible_os_family == 'RedHat' else 'python3-pymysql' }}"
+        state: present
+    
+    - name: Start and enable MySQL service
+      service:
+        name: "{{ 'mariadb' if ansible_os_family == 'RedHat' else 'mysql' }}"
+        state: started
+        enabled: yes
+    
+    - name: Create application database
+      mysql_db:
+        name: "{{ database_name }}"
+        state: present
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+      ignore_errors: yes
