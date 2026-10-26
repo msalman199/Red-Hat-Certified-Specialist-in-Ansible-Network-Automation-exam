@@ -1,0 +1,97 @@
+---
+- name: Critical Systems Management with Fail-Safes
+  hosts: webservers
+  become: yes
+  vars:
+    critical_services:
+      - sshd
+      - NetworkManager
+    backup_location: /tmp/backups
+  
+  tasks:
+    - name: Create backup directory
+      file:
+        path: "{{ backup_location }}"
+        state: directory
+        mode: '0755'
+        
+    - name: Backup critical configuration files
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ backup_location }}/{{ item.name }}_{{ ansible_date_time.epoch }}.bak"
+        remote_src: yes
+        backup: yes
+      loop:
+        - { src: "/etc/ssh/sshd_config", name: "sshd_config" }
+        - { src: "/etc/hosts", name: "hosts" }
+        - { src: "/etc/resolv.conf", name: "resolv_conf" }
+      register: backup_results
+      failed_when: false  # Don't fail if some files don't exist
+      
+    - name: Verify backups were created
+      stat:
+        path: "{{ backup_location }}/{{ item.item.name }}_{{ ansible_date_time.epoch }}.bak"
+      loop: "{{ backup_results.results }}"
+      register: backup_verification
+      failed_when: not backup_verification.stat.exists and item.changed
+      
+    - name: Update SSH configuration with fail-safe
+      block:
+        - name: Modify SSH configuration
+          lineinfile:
+            path: /etc/ssh/sshd_config
+            regexp: '^#?PermitRootLogin'
+            line: 'PermitRootLogin no'
+            backup: yes
+          register: ssh_config_change
+          
+        - name: Test SSH configuration syntax
+          shell: sshd -t
+          register: ssh_syntax_check
+          failed_when: ssh_syntax_check.rc != 0
+          
+        - name: Restart SSH service if configuration is valid
+          systemd:
+            name: sshd
+            state: restarted
+          when: ssh_syntax_check.rc == 0
+          
+      rescue:
+        - name: Restore SSH configuration on failure
+          copy:
+            src: "{{ backup_location }}/sshd_config_{{ ansible_date_time.epoch }}.bak"
+            dest: /etc/ssh/sshd_config
+            remote_src: yes
+          when: ssh_config_change is defined and ssh_config_change.changed
+          
+        - name: Restart SSH with original configuration
+          systemd:
+            name: sshd
+            state: restarted
+            
+        - name: Fail the playbook with informative message
+          fail:
+            msg: "SSH configuration update failed. Original configuration restored."
+            
+    - name: Verify critical services are running
+      systemd:
+        name: "{{ item }}"
+        state: started
+      loop: "{{ critical_services }}"
+      register: service_status
+      retries: 3
+      delay: 5
+      until: service_status is succeeded
+      
+    - name: Create system health check
+      shell: |
+        echo "System Health Check - $(date)" > /tmp/health_check.log
+        echo "SSH Service: $(systemctl is-active sshd)" >> /tmp/health_check.log
+        echo "Network Service: $(systemctl is-active NetworkManager)" >> /tmp/health_check.log
+        echo "Disk Usage: $(df -h / | tail -1)" >> /tmp/health_check.log
+        echo "Memory Usage: $(free -h | grep Mem)" >> /tmp/health_check.log
+      register: health_check
+      
+    - name: Display health check results
+      debug:
+        var: health_check.stdout_lines

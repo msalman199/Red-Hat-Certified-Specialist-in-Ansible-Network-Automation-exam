@@ -1,0 +1,47 @@
+---
+- name: Demonstrate Error Handling with ignore_errors
+  hosts: webservers
+  become: yes
+  vars:
+    packages_to_install:
+      - httpd
+      - nonexistent-package
+      - curl
+  
+  tasks:
+    - name: Update package cache
+      yum:
+        update_cache: yes
+      
+    - name: Install packages (ignore failures for optional packages)
+      yum:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ packages_to_install }}"
+      ignore_errors: yes
+      register: package_results
+      
+    - name: Display package installation results
+      debug:
+        msg: "Package {{ item.item }} installation: {{ 'SUCCESS' if item.rc == 0 else 'FAILED' }}"
+      loop: "{{ package_results.results }}"
+      
+    - name: Start httpd service (only if httpd was installed)
+      systemd:
+        name: httpd
+        state: started
+        enabled: yes
+      when: package_results.results[0].rc == 0
+        
+    - name: This task will now run despite previous failures
+      debug:
+        msg: "Playbook execution continued despite package installation failures"
+        
+    - name: Create a status report
+      copy:
+        content: |
+          Package Installation Report:
+          {% for result in package_results.results %}
+          - {{ result.item }}: {{ 'SUCCESS' if result.rc == 0 else 'FAILED' }}
+          {% endfor %}
+        dest: /tmp/package_report.txt

@@ -1,0 +1,129 @@
+---
+- name: Database Operations with Comprehensive Fail-Safes
+  hosts: webservers
+  become: yes
+  vars:
+    db_backup_dir: /tmp/db_backups
+    maintenance_mode_file: /tmp/maintenance_mode
+  
+  tasks:
+    - name: Pre-flight checks
+      block:
+        - name: Check available disk space
+          shell: df / | tail -1 | awk '{print $4}'
+          register: disk_space
+          failed_when: disk_space.stdout|int < 1000000  # Require at least 1GB free
+          
+        - name: Verify backup directory exists
+          file:
+            path: "{{ db_backup_dir }}"
+            state: directory
+            mode: '0755'
+            
+        - name: Check if maintenance mode is already active
+          stat:
+            path: "{{ maintenance_mode_file }}"
+          register: maintenance_check
+          failed_when: maintenance_check.stat.exists
+          
+    - name: Database maintenance operations
+      block:
+        - name: Enable maintenance mode
+          copy:
+            content: |
+              Maintenance started: {{ ansible_date_time.iso8601 }}
+              Operator: {{ ansible_user }}
+              Host: {{ inventory_hostname }}
+            dest: "{{ maintenance_mode_file }}"
+            
+        - name: Create database backup (simulated)
+          shell: |
+            # Simulate database backup
+            echo "Creating database backup..."
+            sleep 2
+            if [ $((RANDOM % 10)) -lt 8 ]; then
+              echo "Database backup completed successfully" > {{ db_backup_dir }}/backup_{{ ansible_date_time.epoch }}.sql
+              exit 0
+            else
+              echo "Database backup failed"
+              exit 1
+            fi
+          register: db_backup
+          retries: 2
+          delay: 5
+          until: db_backup.rc == 0
+          
+        - name: Verify backup integrity (simulated)
+          shell: |
+            backup_file="{{ db_backup_dir }}/backup_{{ ansible_date_time.epoch }}.sql"
+            if [ -f "$backup_file" ] && [ -s "$backup_file" ]; then
+              echo "Backup verification successful"
+              exit 0
+            else
+              echo "Backup verification failed"
+              exit 1
+            fi
+          register: backup_verification
+          
+        - name: Perform database maintenance (simulated)
+          shell: |
+            echo "Performing database maintenance operations..."
+            sleep 3
+            # Simulate potential failure
+            if [ $((RANDOM % 5)) -eq 0 ]; then
+              echo "Maintenance operation failed"
+              exit 1
+            else
+              echo "Maintenance completed successfully"
+              exit 0
+            fi
+          register: db_maintenance
+          
+      rescue:
+        - name: Handle database operation failures
+          debug:
+            msg: "Database operation failed. Initiating recovery procedures."
+            
+        - name: Restore from backup if maintenance failed
+          shell: |
+            if [ -f "{{ db_backup_dir }}/backup_{{ ansible_date_time.epoch }}.sql" ]; then
+              echo "Restoring database from backup..."
+              # Simulate restore operation
+              sleep 2
+              echo "Database restored successfully"
+            else
+              echo "No backup available for restore"
+              exit 1
+            fi
+          when: db_maintenance is defined and db_maintenance.failed
+          register: db_restore
+          
+        - name: Send alert notification (simulated)
+          shell: |
+            echo "ALERT: Database maintenance failed on {{ inventory_hostname }}" >> /tmp/alerts.log
+            echo "Timestamp: {{ ansible_date_time.iso8601 }}" >> /tmp/alerts.log
+            echo "Error details: {{ db_maintenance.stderr | default('Unknown error') }}" >> /tmp/alerts.log
+            
+      always:
+        - name: Disable maintenance mode
+          file:
+            path: "{{ maintenance_mode_file }}"
+            state: absent
+            
+        - name: Log maintenance completion
+          lineinfile:
+            path: /tmp/maintenance.log
+            line: "{{ ansible_date_time.iso8601 }} - Maintenance completed on {{ inventory_hostname }}"
+            create: yes
+            
+        - name: Verify system is operational
+          shell: |
+            echo "System operational check:"
+            echo "- SSH service: $(systemctl is-active sshd)"
+            echo "- Disk space: $(df -h / | tail -1 | awk '{print $5}')"
+            echo "- Load average: $(uptime | awk -F'load average:' '{print $2}')"
+          register: final_check
+          
+        - name: Display final system status
+          debug:
+            var: final_check.stdout_lines

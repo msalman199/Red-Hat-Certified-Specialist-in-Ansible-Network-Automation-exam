@@ -1,0 +1,131 @@
+---
+- name: Production-Like Failure Scenarios
+  hosts: webservers
+  become: yes
+  vars:
+    app_config_dir: /etc/myapp
+    app_data_dir: /var/lib/myapp
+    log_dir: /var/log/myapp
+  
+  tasks:
+    - name: Setup application environment
+      block:
+        - name: Create application directories
+          file:
+            path: "{{ item }}"
+            state: directory
+            mode: '0755'
+          loop:
+            - "{{ app_config_dir }}"
+            - "{{ app_data_dir }}"
+            - "{{ log_dir }}"
+            
+        - name: Create initial configuration
+          copy:
+            content: |
+              # Application Configuration
+              database_host=localhost
+              database_port=5432
+              max_connections=100
+              timeout=30
+            dest: "{{ app_config_dir }}/app.conf"
+            
+    - name: Simulate configuration update with validation
+      block:
+        - name: Backup current configuration
+          copy:
+            src: "{{ app_config_dir }}/app.conf"
+            dest: "{{ app_config_dir }}/app.conf.backup.{{ ansible_date_time.epoch }}"
+            remote_src: yes
+            
+        - name: Update configuration (potentially problematic)
+          lineinfile:
+            path: "{{ app_config_dir }}/app.conf"
+            regexp: '^timeout='
+            line: 'timeout={{ new_timeout | default("invalid_value") }}'
+          register: config_update
+          
+        - name: Validate configuration syntax
+          shell: |
+            # Simulate configuration validation
+            config_file="{{ app_config_dir }}/app.conf"
+            if grep -q "timeout=invalid_value" "$config_file"; then
+              echo "Invalid timeout value detected"
+              exit 1
+            elif grep -q "timeout=[0-9]\+$" "$config_file"; then
+              echo "Configuration validation passed"
+              exit 0
+            else
+              echo "Configuration validation failed"
+              exit 1
+            fi
+          register: config_validation
+          
+        - name: Restart application service (simulated)
+          shell: |
+            echo "Restarting application service..."
+            # Simulate service restart that might fail
+            if [ $((RANDOM % 3)) -eq 0 ]; then
+              echo "Service restart failed"
+              exit 1
+            else
+              echo "Service restarted successfully"
+              exit 0
+            fi
+          register: service_restart
+          retries: 2
+          delay: 3
+          until: service_restart.rc == 0
+          
+      rescue:
+        - name: Handle configuration failure
+          debug:
+            msg: "Configuration update failed. Initiating rollback procedures."
+            
+        - name: Restore previous configuration
+          copy:
+            src: "{{ app_config_dir }}/app.conf.backup.{{ ansible_date_time.epoch }}"
+            dest: "{{ app_config_dir }}/app.conf"
+            remote_src: yes
+          when: config_update is defined and config_update.changed
+          
+        - name: Restart service with original configuration
+          shell: |
+            echo "Restarting service with original configuration..."
+            echo "Service restored successfully"
+          register: service_restore
+          
+        - name: Log failure incident
+          lineinfile:
+            path: "{{ log_dir }}/incidents.log"
+            line: "{{ ansible_date_time.iso8601 }} - Configuration update failed and rolled back on {{ inventory_hostname }}"
+            create: yes
+            
+        - name: Send failure notification
+          debug:
+            msg: |
+              INCIDENT REPORT:
+              Time: {{ ansible_date_time.iso8601 }}
+              Host: {{ inventory_hostname }}
+              Issue: Configuration update failed
+              Action: Rolled back to previous configuration
+              Status: Service restored
+              
+      always:
+        - name: Verify application status
+          shell: |
+            echo "Application Status Check:"
+            echo "- Config file exists: $([ -f {{ app_config_dir }}/app.conf ] && echo 'YES' || echo 'NO')"
+            echo "- Config file size: $(wc -l < {{ app_config_dir }}/app.conf) lines"
+            echo "- Last modified: $(stat -c %y {{ app_config_dir }}/app.conf)"
+          register: app_status
+          
+        - name: Display application status
+          debug:
+            var: app_status.stdout_lines
+            
+        - name: Cleanup old backups (keep last 5)
+          shell: |
+            cd {{ app_config_dir }}
+            ls -t app.conf.backup.* 2>/dev/null | tail -n +6 | xargs rm -f
+          ignore_errors: yes

@@ -1,0 +1,64 @@
+---
+- name: Advanced Retry Patterns
+  hosts: webservers
+  become: yes
+  vars:
+    max_retries: 3
+    retry_delay: 5
+  
+  tasks:
+    - name: Wait for service to be ready (with exponential backoff)
+      uri:
+        url: "http://{{ inventory_hostname }}:80"
+        method: GET
+        status_code: [200, 404]  # 404 is acceptable for testing
+      retries: "{{ max_retries }}"
+      delay: "{{ retry_delay * (ansible_loop.index0 + 1) }}"
+      register: service_check
+      until: service_check.status in [200, 404]
+      ignore_errors: yes
+      
+    - name: Install package with intelligent retry
+      yum:
+        name: "{{ item }}"
+        state: present
+        lock_timeout: 60
+      retries: 3
+      delay: 10
+      register: install_result
+      until: install_result is succeeded
+      loop:
+        - wget
+        - curl
+        - vim
+      ignore_errors: yes
+      
+    - name: Custom retry with conditional logic
+      shell: |
+        # Simulate a flaky command that succeeds after several attempts
+        attempt_file="/tmp/attempt_counter_{{ inventory_hostname }}"
+        if [ ! -f "$attempt_file" ]; then
+          echo "1" > "$attempt_file"
+        else
+          count=$(cat "$attempt_file")
+          count=$((count + 1))
+          echo "$count" > "$attempt_file"
+        fi
+        
+        if [ "$count" -ge 3 ]; then
+          echo "Command succeeded after $count attempts"
+          rm -f "$attempt_file"
+          exit 0
+        else
+          echo "Attempt $count failed"
+          exit 1
+        fi
+      retries: 5
+      delay: 2
+      register: custom_retry
+      until: custom_retry.rc == 0
+      
+    - name: Cleanup attempt files
+      file:
+        path: "/tmp/attempt_counter_{{ inventory_hostname }}"
+        state: absent

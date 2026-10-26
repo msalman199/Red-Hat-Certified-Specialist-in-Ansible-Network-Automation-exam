@@ -1,0 +1,30 @@
+---
+- name: Demonstrate Task Failures
+  hosts: webservers
+  become: yes
+  vars:
+    packages_to_install:
+      - httpd
+      - nonexistent-package
+      - curl
+  
+  tasks:
+    - name: Update package cache
+      yum:
+        update_cache: yes
+      
+    - name: Install packages (will fail on nonexistent package)
+      yum:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ packages_to_install }}"
+      
+    - name: Start httpd service
+      systemd:
+        name: httpd
+        state: started
+        enabled: yes
+        
+    - name: This task won't run due to previous failure
+      debug:
+        msg: "This message should not appear if previous task fails"
