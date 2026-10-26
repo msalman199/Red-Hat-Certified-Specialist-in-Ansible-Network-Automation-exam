@@ -1,0 +1,97 @@
+# Production Dynamic Inventory Configuration
+# Best practices implementation
+plugin: amazon.aws.aws_ec2
+
+# Define regions to scan
+regions:
+  - us-east-1
+  - us-west-2
+
+# Hostname preferences (in order of preference)
+hostnames:
+  - tag:Name
+  - private-ip-address
+  - ip-address
+
+# Host variables composition
+compose:
+  ansible_host: public_ip_address | default(private_ip_address)
+  ansible_user: "{{ 'ubuntu' if (tags.OS | default('')) == 'ubuntu' else 'ec2-user' }}"
+  ansible_ssh_private_key_file: "{{ '~/.ssh/ubuntu-key.pem' if (tags.OS | default('')) == 'ubuntu' else '~/.ssh/ec2-key.pem' }}"
+  ec2_instance_id: instance_id
+  ec2_instance_type: instance_type
+  ec2_region: placement.region
+  ec2_zone: placement.availability_zone
+  ec2_vpc_id: vpc_id
+  ec2_subnet_id: subnet_id
+  ec2_security_groups: security_groups | map(attribute='group_name') | list
+  ec2_tags: tags
+
+# Dynamic grouping
+keyed_groups:
+  # Group by environment
+  - prefix: env
+    key: tags.Environment | default('untagged')
+  
+  # Group by application
+  - prefix: app
+    key: tags.Application | default('unknown')
+  
+  # Group by role/function
+  - prefix: role
+    key: tags.Role | default('generic')
+  
+  # Group by instance type family
+  - prefix: family
+    key: instance_type.split('.')[0]
+  
+  # Group by availability zone
+  - prefix: az
+    key: placement.availability_zone
+  
+  # Group by VPC
+  - prefix: vpc
+    key: vpc_id
+
+# Conditional groups
+groups:
+  # Environment groups
+  production: tags.Environment == "production"
+  staging: tags.Environment == "staging"
+  development: tags.Environment == "development"
+  
+  # Function-based groups
+  webservers: tags.Role == "webserver"
+  databases: tags.Role == "database"
+  loadbalancers: tags.Role == "loadbalancer"
+  monitoring: tags.Role == "monitoring"
+  
+  # OS-based groups
+  ubuntu: tags.OS == "ubuntu"
+  amazon_linux: tags.OS == "amazon-linux"
+  rhel: tags.OS == "rhel"
+  
+  # Size-based groups
+  micro: instance_type.endswith('.micro')
+  small: instance_type.endswith('.small')
+  medium: instance_type.endswith('.medium')
+  large: instance_type.endswith('.large')
+
+# Filters to limit discovery
+filters:
+  # Only running instances
+  instance-state-name: running
+  
+  # Only instances with specific tags (optional)
+  # "tag:Managed": "ansible"
+
+# Performance optimization
+cache: true
+cache_plugin: jsonfile
+cache_timeout: 1800  # 30 minutes
+cache_connection: /tmp/ansible-aws-cache
+cache_prefix: production
+
+# Error handling
+strict: false
+use_contrib_script_compatible_sanitization: true

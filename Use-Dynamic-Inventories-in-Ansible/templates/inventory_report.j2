@@ -1,0 +1,24 @@
+ANSIBLE DYNAMIC INVENTORY REPORT
+================================
+Generated: {{ ansible_date_time.iso8601 }}
+
+SUMMARY
+-------
+Total Hosts: {{ all_hosts | length }}
+Total Groups: {{ groups | length }}
+
+GROUPS
+------
+{% for group in groups %}
+{{ group }}: {{ inventory_json[group].hosts | default([]) | length }} hosts
+{% endfor %}
+
+HOST DETAILS
+------------
+{% for host in all_hosts %}
+{{ host }}:
+  IP: {{ inventory_json._meta.hostvars[host].ansible_host | default('N/A') }}
+  Instance Type: {{ inventory_json._meta.hostvars[host].ec2_instance_type | default('N/A') }}
+  Zone: {{ inventory_json._meta.hostvars[host].ec2_placement_zone | default('N/A') }}
+  Groups: {{ inventory_json._meta.hostvars[host].group_names | default([]) | join(', ') }}
+{% endfor %}

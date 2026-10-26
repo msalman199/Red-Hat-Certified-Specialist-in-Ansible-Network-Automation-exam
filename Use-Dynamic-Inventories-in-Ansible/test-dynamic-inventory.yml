@@ -1,0 +1,27 @@
+---
+- name: Test Dynamic Inventory Connectivity
+  hosts: all
+  gather_facts: yes
+  tasks:
+    - name: Display host information
+      debug:
+        msg: |
+          Host: {{ inventory_hostname }}
+          IP: {{ ansible_host | default('N/A') }}
+          Instance Type: {{ ec2_instance_type | default('N/A') }}
+          Availability Zone: {{ ec2_placement_zone | default('N/A') }}
+          Tags: {{ ec2_tags | default({}) }}
+
+    - name: Test connectivity with ping
+      ping:
+
+    - name: Gather system information
+      setup:
+        filter: ansible_distribution*
+      register: system_info
+
+    - name: Display system information
+      debug:
+        msg: |
+          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Architecture: {{ ansible_architecture }}
