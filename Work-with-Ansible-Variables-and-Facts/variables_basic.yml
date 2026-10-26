@@ -1,0 +1,24 @@
+---
+- name: Basic Variables Example
+  hosts: all
+  vars:
+    web_server_port: 8080
+    web_server_name: "MyWebServer"
+    admin_email: "admin@example.com"
+    packages_to_install:
+      - nginx
+      - curl
+      - wget
+  
+  tasks:
+    - name: Display web server configuration
+      debug:
+        msg: |
+          Server Name: {{ web_server_name }}
+          Port: {{ web_server_port }}
+          Admin Email: {{ admin_email }}
+    
+    - name: Show packages to install
+      debug:
+        msg: "Package: {{ item }}"
+      loop: "{{ packages_to_install }}"

@@ -1,0 +1,5 @@
+---
+company_name: "TechCorp"
+support_email: "support@techcorp.com"
+timezone: "UTC"
+log_level: "info"

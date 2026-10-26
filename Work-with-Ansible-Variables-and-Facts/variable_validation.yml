@@ -1,0 +1,35 @@
+---
+- name: Variable Validation and Error Handling
+  hosts: all
+  gather_facts: yes
+  vars:
+    required_memory: 1024
+    required_disk_space: 10  # GB
+    
+  tasks:
+    - name: Validate minimum memory requirement
+      fail:
+        msg: "Insufficient memory: {{ ansible_memtotal_mb }}MB available, {{ required_memory }}MB required"
+      when: ansible_memtotal_mb < required_memory
+    
+    - name: Check if required variables are defined
+      fail:
+        msg: "Variable {{ item }} is not defined"
+      when: vars[item] is not defined
+      loop:
+        - required_memory
+        - required_disk_space
+    
+    - name: Display validation success
+      debug:
+        msg: |
+          Validation passed:
+          - Memory: {{ ansible_memtotal_mb }}MB (required: {{ required_memory }}MB)
+          - Host meets requirements
+    
+    - name: Use default values for undefined variables
+      debug:
+        msg: |
+          Service Port: {{ service_port | default(8080) }}
+          Debug Mode: {{ debug_mode | default(false) }}
+          Max Connections: {{ max_connections | default(100) }}

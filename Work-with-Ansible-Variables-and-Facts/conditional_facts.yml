@@ -1,0 +1,28 @@
+---
+- name: Conditional Tasks Based on Facts
+  hosts: all
+  gather_facts: yes
+  tasks:
+    - name: Install package on Ubuntu/Debian
+      apt:
+        name: htop
+        state: present
+      when: ansible_os_family == "Debian"
+      become: yes
+    
+    - name: Install package on RedHat/CentOS
+      yum:
+        name: htop
+        state: present
+      when: ansible_os_family == "RedHat"
+      become: yes
+    
+    - name: Display different message for low memory systems
+      debug:
+        msg: "Warning: This system has low memory ({{ ansible_memtotal_mb }} MB)"
+      when: ansible_memtotal_mb < 2048
+    
+    - name: Display message for high memory systems
+      debug:
+        msg: "Good: This system has sufficient memory ({{ ansible_memtotal_mb }} MB)"
+      when: ansible_memtotal_mb >= 2048

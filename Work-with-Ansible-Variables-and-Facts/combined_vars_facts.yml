@@ -1,0 +1,53 @@
+---
+- name: Combined Variables and Facts
+  hosts: all
+  gather_facts: yes
+  vars:
+    service_name: "myapp"
+    config_dir: "/etc/{{ service_name }}"
+    log_dir: "/var/log/{{ service_name }}"
+    
+  tasks:
+    - name: Create configuration directory
+      file:
+        path: "{{ config_dir }}"
+        state: directory
+        mode: '0755'
+      become: yes
+    
+    - name: Create log directory
+      file:
+        path: "{{ log_dir }}"
+        state: directory
+        mode: '0755'
+      become: yes
+    
+    - name: Generate configuration file using facts and variables
+      copy:
+        content: |
+          # {{ service_name }} Configuration File
+          # Generated on {{ ansible_date_time.iso8601 }}
+          
+          [server]
+          hostname = {{ ansible_hostname }}
+          ip_address = {{ ansible_default_ipv4.address }}
+          port = 8080
+          
+          [system]
+          os = {{ ansible_distribution }} {{ ansible_distribution_version }}
+          architecture = {{ ansible_architecture }}
+          total_memory = {{ ansible_memtotal_mb }}MB
+          cpu_cores = {{ ansible_processor_cores }}
+          
+          [application]
+          service_name = {{ service_name }}
+          config_dir = {{ config_dir }}
+          log_dir = {{ log_dir }}
+          environment = production
+        dest: "{{ config_dir }}/{{ service_name }}.conf"
+        mode: '0644'
+      become: yes
+    
+    - name: Display configuration file location
+      debug:
+        msg: "Configuration file created at: {{ config_dir }}/{{ service_name }}.conf"

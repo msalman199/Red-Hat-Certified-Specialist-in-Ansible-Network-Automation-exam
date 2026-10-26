@@ -1,0 +1,18 @@
+---
+# Web server configuration variables
+web_server:
+  name: "ProductionWebServer"
+  port: 80
+  ssl_port: 443
+  document_root: "/var/www/html"
+  
+database:
+  host: "db.example.com"
+  port: 3306
+  name: "webapp_db"
+  user: "webapp_user"
+
+application:
+  version: "2.1.0"
+  environment: "production"
+  debug_mode: false

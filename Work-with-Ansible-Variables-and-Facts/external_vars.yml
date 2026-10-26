@@ -1,0 +1,28 @@
+---
+- name: Using External Variables
+  hosts: all
+  vars_files:
+    - vars/web_config.yml
+  
+  tasks:
+    - name: Display web server configuration
+      debug:
+        msg: |
+          Web Server: {{ web_server.name }}
+          HTTP Port: {{ web_server.port }}
+          HTTPS Port: {{ web_server.ssl_port }}
+          Document Root: {{ web_server.document_root }}
+    
+    - name: Display database configuration
+      debug:
+        msg: |
+          Database Host: {{ database.host }}
+          Database Port: {{ database.port }}
+          Database Name: {{ database.name }}
+    
+    - name: Display application info
+      debug:
+        msg: |
+          App Version: {{ application.version }}
+          Environment: {{ application.environment }}
+          Debug Mode: {{ application.debug_mode }}

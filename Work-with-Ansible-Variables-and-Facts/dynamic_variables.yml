@@ -1,0 +1,46 @@
+---
+- name: Dynamic Variable Assignment
+  hosts: all
+  gather_facts: yes
+  vars:
+    memory_threshold: 4096
+    
+  tasks:
+    - name: Set performance profile based on memory
+      set_fact:
+        performance_profile: "{{ 'high' if ansible_memtotal_mb > memory_threshold else 'standard' }}"
+    
+    - name: Set worker processes based on CPU cores
+      set_fact:
+        worker_processes: "{{ ansible_processor_cores * 2 }}"
+    
+    - name: Set cache size based on available memory
+      set_fact:
+        cache_size: "{{ (ansible_memtotal_mb * 0.1) | int }}m"
+    
+    - name: Display dynamic configuration
+      debug:
+        msg: |
+          Performance Profile: {{ performance_profile }}
+          Worker Processes: {{ worker_processes }}
+          Cache Size: {{ cache_size }}
+          Based on: {{ ansible_processor_cores }} CPU cores, {{ ansible_memtotal_mb }}MB RAM
+    
+    - name: Create optimized configuration
+      copy:
+        content: |
+          # Dynamically Generated Configuration
+          # Host: {{ ansible_hostname }}
+          # Generated: {{ ansible_date_time.iso8601 }}
+          
+          performance_profile={{ performance_profile }}
+          worker_processes={{ worker_processes }}
+          cache_size={{ cache_size }}
+          
+          # System Information
+          cpu_cores={{ ansible_processor_cores }}
+          total_memory={{ ansible_memtotal_mb }}MB
+          os={{ ansible_distribution }}
+        dest: "/tmp/dynamic_config.conf"
+        mode: '0644'
+      become: yes

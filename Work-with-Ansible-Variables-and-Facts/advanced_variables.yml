@@ -1,0 +1,81 @@
+---
+- name: Advanced Variable Techniques
+  hosts: all
+  gather_facts: yes
+  vars:
+    users:
+      - name: "alice"
+        role: "admin"
+        shell: "/bin/bash"
+      - name: "bob"
+        role: "user"
+        shell: "/bin/sh"
+    
+    default_packages:
+      - vim
+      - curl
+      - wget
+    
+    os_specific_packages:
+      Debian:
+        - apt-transport-https
+        - software-properties-common
+      RedHat:
+        - epel-release
+        - yum-utils
+  
+  tasks:
+    - name: Combine default and OS-specific packages
+      set_fact:
+        all_packages: "{{ default_packages + os_specific_packages[ansible_os_family] | default([]) }}"
+    
+    - name: Display package list
+      debug:
+        msg: "Packages to install: {{ all_packages }}"
+    
+    - name: Create user accounts with variables
+      debug:
+        msg: |
+          Creating user: {{ item.name }}
+          Role: {{ item.role }}
+          Shell: {{ item.shell }}
+      loop: "{{ users }}"
+    
+    - name: Generate system report using facts and variables
+      template:
+        content: |
+          # System Report for {{ ansible_hostname }}
+          # Generated on {{ ansible_date_time.iso8601 }}
+          
+          ## System Information
+          Hostname: {{ ansible_hostname }}
+          FQDN: {{ ansible_fqdn }}
+          Operating System: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Kernel: {{ ansible_kernel }}
+          Architecture: {{ ansible_architecture }}
+          
+          ## Hardware Information
+          CPU Model: {{ ansible_processor[2] | default('Unknown') }}
+          CPU Cores: {{ ansible_processor_cores }}
+          Total Memory: {{ ansible_memtotal_mb }} MB
+          
+          ## Network Information
+          Primary IP: {{ ansible_default_ipv4.address }}
+          Gateway: {{ ansible_default_ipv4.gateway }}
+          
+          ## Configured Users
+          {% for user in users %}
+          - {{ user.name }} ({{ user.role }})
+          {% endfor %}
+          
+          ## Packages to Install
+          {% for package in all_packages %}
+          - {{ package }}
+          {% endfor %}
+        dest: "/tmp/system_report_{{ ansible_hostname }}.txt"
+        mode: '0644'
+      become: yes
+    
+    - name: Display report location
+      debug:
+        msg: "System report created: /tmp/system_report_{{ ansible_hostname }}.txt"

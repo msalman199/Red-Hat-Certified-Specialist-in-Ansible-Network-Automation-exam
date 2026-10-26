@@ -1,0 +1,24 @@
+---
+- name: Variable Precedence Demo
+  hosts: all
+  vars:
+    log_level: "debug"  # This will override group_vars
+  
+  tasks:
+    - name: Show company information
+      debug:
+        msg: |
+          Company: {{ company_name }}
+          Support Email: {{ support_email }}
+          Timezone: {{ timezone }}
+    
+    - name: Show log level (demonstrating precedence)
+      debug:
+        msg: "Log Level: {{ log_level }}"
+    
+    - name: Show host-specific variables
+      debug:
+        msg: |
+          Server Role: {{ server_role | default('undefined') }}
+          Max Connections: {{ max_connections | default('undefined') }}
+          Backup Enabled: {{ backup_enabled | default('undefined') }}

@@ -1,0 +1,25 @@
+---
+- name: Display System Facts
+  hosts: all
+  gather_facts: yes
+  tasks:
+    - name: Show hostname
+      debug:
+        msg: "Hostname: {{ ansible_hostname }}"
+    
+    - name: Show operating system
+      debug:
+        msg: "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+    
+    - name: Show IP address
+      debug:
+        msg: "IP Address: {{ ansible_default_ipv4.address }}"
+    
+    - name: Show total memory
+      debug:
+        msg: "Total Memory: {{ ansible_memtotal_mb }} MB"
+    
+    - name: Show CPU information
+      debug:
+        msg: "CPU Cores: {{ ansible_processor_cores }}"
+
