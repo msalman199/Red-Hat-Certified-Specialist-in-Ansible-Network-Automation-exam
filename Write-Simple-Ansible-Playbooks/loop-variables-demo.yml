@@ -1,0 +1,63 @@
+---
+- name: Demonstrate Loops and Variables
+  hosts: managed1
+  become: yes
+  vars:
+    users_to_create:
+      - name: webadmin
+        shell: /bin/bash
+        groups: wheel
+      - name: developer
+        shell: /bin/bash
+        groups: users
+      - name: tester
+        shell: /bin/bash
+        groups: users
+    
+    packages_to_install:
+      - git
+      - tree
+      - htop
+      - ncdu
+    
+    directories_to_create:
+      - /opt/applications
+      - /opt/scripts
+      - /opt/logs
+  
+  tasks:
+    - name: Create multiple users
+      user:
+        name: "{{ item.name }}"
+        shell: "{{ item.shell }}"
+        groups: "{{ item.groups }}"
+        create_home: yes
+      loop: "{{ users_to_create }}"
+      tags: users
+    
+    - name: Install multiple packages
+      yum:
+        name: "{{ packages_to_install }}"
+        state: present
+      tags: packages
+    
+    - name: Create multiple directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+      loop: "{{ directories_to_create }}"
+      tags: directories
+    
+    - name: Set custom facts
+      set_fact:
+        deployment_time: "{{ ansible_date_time.epoch }}"
+        server_role: "web_server"
+    
+    - name: Display custom facts
+      debug:
+        msg: |
+          Server {{ inventory_hostname }} configured as {{ server_role }}
+          Deployment timestamp: {{ deployment_time }}

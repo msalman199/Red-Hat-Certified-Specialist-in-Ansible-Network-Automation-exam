@@ -1,0 +1,29 @@
+# Apache Configuration - Managed by Ansible
+ServerRoot /etc/httpd
+Listen {{ ansible_default_ipv4.address }}:80
+
+# Server Information
+ServerName {{ inventory_hostname }}
+ServerAdmin admin@{{ inventory_hostname }}
+
+# Document Root
+DocumentRoot {{ document_root | default('/var/www/html') }}
+
+# Directory Configuration
+<Directory "{{ document_root | default('/var/www/html') }}">
+    AllowOverride None
+    Require all granted
+</Directory>
+
+# Logging
+ErrorLog logs/error_log
+CustomLog logs/access_log combined
+
+# Load Modules
+LoadModule dir_module modules/mod_dir.so
+LoadModule mime_module modules/mod_mime.so
+LoadModule rewrite_module modules/mod_rewrite.so
+
+# MIME Types
+TypesConfig /etc/mime.types
+DirectoryIndex index.html

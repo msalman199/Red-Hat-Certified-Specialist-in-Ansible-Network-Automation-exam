@@ -1,0 +1,12 @@
+---
+# This is a YAML comment - playbooks start with three dashes
+- name: Example playbook structure
+  hosts: all                    # Target hosts or groups
+  become: yes                   # Run with elevated privileges
+  vars:                        # Variables section
+    package_name: httpd
+  
+  tasks:                       # List of tasks to execute
+    - name: Task description
+      module_name:             # Ansible module to use
+        parameter: value       # Module parameters

@@ -1,0 +1,55 @@
+---
+- name: Multi-OS Package Installation
+  hosts: all
+  become: yes
+  
+  tasks:
+    - name: Gather OS facts
+      setup:
+        gather_subset:
+          - '!all'
+          - '!min'
+          - distribution
+    
+    - name: Install packages on RedHat/CentOS systems
+      yum:
+        name:
+          - httpd
+          - firewalld
+        state: present
+      when: ansible_os_family == "RedHat"
+      tags: redhat
+    
+    - name: Install packages on Debian/Ubuntu systems
+      apt:
+        name:
+          - apache2
+          - ufw
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+      tags: debian
+    
+    - name: Start service on RedHat systems
+      systemd:
+        name: httpd
+        state: started
+        enabled: yes
+      when: ansible_os_family == "RedHat"
+      tags: redhat
+    
+    - name: Start service on Debian systems
+      systemd:
+        name: apache2
+        state: started
+        enabled: yes
+      when: ansible_os_family == "Debian"
+      tags: debian
+    
+    - name: Display system information
+      debug:
+        msg: |
+          Hostname: {{ inventory_hostname }}
+          OS Family: {{ ansible_os_family }}
+          Distribution: {{ ansible_distribution }}
+          Version: {{ ansible_distribution_version }}

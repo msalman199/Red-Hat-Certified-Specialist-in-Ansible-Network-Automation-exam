@@ -1,0 +1,95 @@
+---
+- name: Deploy Complete Web Server Setup
+  hosts: managed_hosts
+  become: yes
+  vars:
+    web_package: httpd
+    web_service: httpd
+    document_root: /var/www/html
+    custom_index_content: |
+      <html>
+      <head><title>Ansible Managed Server</title></head>
+      <body>
+        <h1>Welcome to {{ inventory_hostname }}</h1>
+        <p>This server was configured by Ansible on {{ ansible_date_time.date }}</p>
+        <p>Server IP: {{ ansible_default_ipv4.address }}</p>
+      </body>
+      </html>
+  
+  tasks:
+    - name: Install web server package
+      yum:
+        name: "{{ web_package }}"
+        state: present
+      tags:
+        - install
+        - packages
+    
+    - name: Install additional packages
+      yum:
+        name:
+          - wget
+          - curl
+          - vim
+        state: present
+      tags:
+        - install
+        - packages
+    
+    - name: Create custom index.html
+      copy:
+        content: "{{ custom_index_content }}"
+        dest: "{{ document_root }}/index.html"
+        owner: apache
+        group: apache
+        mode: '0644'
+      tags:
+        - content
+        - configuration
+      notify:
+        - restart web service
+    
+    - name: Configure firewall for HTTP
+      firewalld:
+        service: http
+        permanent: yes
+        state: enabled
+        immediate: yes
+      tags:
+        - firewall
+        - security
+    
+    - name: Configure firewall for HTTPS
+      firewalld:
+        service: https
+        permanent: yes
+        state: enabled
+        immediate: yes
+      tags:
+        - firewall
+        - security
+    
+    - name: Start and enable web service
+      systemd:
+        name: "{{ web_service }}"
+        state: started
+        enabled: yes
+      tags:
+        - service
+        - configuration
+    
+    - name: Verify web service is responding
+      uri:
+        url: "http://{{ inventory_hostname }}"
+        method: GET
+        status_code: 200
+      tags:
+        - verification
+        - testing
+      delegate_to: localhost
+  
+  handlers:
+    - name: restart web service
+      systemd:
+        name: "{{ web_service }}"
+        state: restarted

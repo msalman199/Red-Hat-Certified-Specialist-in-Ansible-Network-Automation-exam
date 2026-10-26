@@ -1,0 +1,30 @@
+---
+- name: Deploy Configuration Using Templates
+  hosts: managed1
+  become: yes
+  vars:
+    document_root: /var/www/html
+  
+  tasks:
+    - name: Deploy Apache configuration from template
+      template:
+        src: templates/httpd.conf.j2
+        dest: /etc/httpd/conf/httpd.conf
+        owner: root
+        group: root
+        mode: '0644'
+        backup: yes
+      notify:
+        - restart apache
+    
+    - name: Ensure Apache is running
+      systemd:
+        name: httpd
+        state: started
+        enabled: yes
+  
+  handlers:
+    - name: restart apache
+      systemd:
+        name: httpd
+        state: restarted

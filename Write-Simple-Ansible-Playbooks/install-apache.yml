@@ -1,0 +1,23 @@
+---
+- name: Install Apache Web Server
+  hosts: managed1
+  become: yes
+  
+  tasks:
+    - name: Install Apache package
+      yum:
+        name: httpd
+        state: present
+    
+    - name: Start and enable Apache service
+      systemd:
+        name: httpd
+        state: started
+        enabled: yes
+    
+    - name: Open firewall for HTTP traffic
+      firewalld:
+        service: http
+        permanent: yes
+        state: enabled
+        immediate: yes
