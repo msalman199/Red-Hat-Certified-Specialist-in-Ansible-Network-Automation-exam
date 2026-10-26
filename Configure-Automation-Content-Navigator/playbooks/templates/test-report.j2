@@ -1,0 +1,20 @@
+Ansible Navigator Integration Test Report
+=========================================
+
+System Information:
+- Hostname: {{ report_data.hostname }}
+- Operating System: {{ report_data.os_info }}
+- Memory (MB): {{ report_data.memory_mb }}
+- CPU Cores: {{ report_data.cpu_count }}
+
+Test Execution:
+- Date: {{ ansible_date_time.date }}
+- Time: {{ ansible_date_time.time }}
+- User: {{ ansible_user_id }}
+
+Navigator Configuration:
+- Execution Environment: Enabled
+- Artifact Collection: Enabled
+- Logging: Enabled
+
+Test Status: PASSED

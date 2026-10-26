@@ -1,0 +1,53 @@
+plugin: amazon.aws.aws_ec2
+regions:
+  - us-east-1
+  - us-west-2
+hostnames:
+  - tag:Name
+  - ip-address
+compose:
+  ansible_host: public_ip_address
+  ec2_state: instance_state_name
+  ec2_arch: architecture
+  ec2_instance_type: instance_type
+  ec2_placement_region: placement.region
+  ec2_placement_zone: placement.availability_zone
+  ec2_security_groups: security_groups | map(attribute='group_name') | list | join(',')
+keyed_groups:
+  # Group by tags
+  - prefix: tag
+    key: tags
+  # Group by instance type family
+  - prefix: type
+    key: instance_type.split('.')[0]
+  # Group by availability zone
+  - prefix: az
+    key: placement.availability_zone
+  # Group by VPC
+  - prefix: vpc
+    key: vpc_id
+  # Group by security groups
+  - prefix: sg
+    key: security_groups | map(attribute='group_name') | list
+groups:
+  # Logical groupings
+  webservers: "'web' in (tags.Role | default(''))"
+  databases: "'db' in (tags.Role | default(''))"
+  loadbalancers: "'lb' in (tags.Role | default(''))"
+  
+  # Environment groupings
+  prod: tags.Environment == "production"
+  staging: tags.Environment == "staging"
+  dev: tags.Environment == "development"
+  
+  # Size-based groupings
+  small_instances: instance_type in ['t2.micro', 't2.small', 't3.micro', 't3.small']
+  medium_instances: instance_type in ['t2.medium', 't3.medium', 'm5.large']
+  large_instances: instance_type in ['m5.xlarge', 'm5.2xlarge', 'c5.xlarge']
+filters:
+  instance-state-name: running
+cache: true
+cache_plugin: memory
+cache_timeout: 300
+cache_connection: /tmp/ansible-inventory-cache
+strict: false

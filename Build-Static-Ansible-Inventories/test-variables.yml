@@ -1,0 +1,16 @@
+---
+- name: Test Inventory Variables
+  hosts: all
+  gather_facts: no
+  tasks:
+    - name: Display host-specific variables
+      debug:
+        msg: |
+          Host: {{ inventory_hostname }}
+          Company: {{ company }}
+          Environment: {{ environment | default('not set') }}
+          Server Role: {{ server_role | default('not set') }}
+          
+    - name: Display group membership
+      debug:
+        msg: "{{ inventory_hostname }} belongs to groups: {{ group_names }}"

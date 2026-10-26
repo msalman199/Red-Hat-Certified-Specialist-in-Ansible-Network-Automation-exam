@@ -1,0 +1,30 @@
+plugin: amazon.aws.aws_ec2
+regions:
+  - us-east-1
+  - us-west-2
+hostnames:
+  - ip-address
+  - dns-name
+  - tag:Name
+compose:
+  ansible_host: public_ip_address
+keyed_groups:
+  - prefix: tag
+    key: tags
+  - prefix: instance_type
+    key: instance_type
+  - prefix: placement
+    key: placement.availability_zone
+groups:
+  # Group by instance state
+  running: instance_state_name == "running"
+  stopped: instance_state_name == "stopped"
+  # Group by environment tag
+  production: tags.Environment == "production"
+  development: tags.Environment == "development"
+  # Group by operating system
+  linux: platform == "linux"
+  windows: platform == "windows"
+filters:
+  # Only include running instances
+  instance-state-name: running

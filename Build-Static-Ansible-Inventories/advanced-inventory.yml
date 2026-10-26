@@ -1,0 +1,58 @@
+---
+all:
+  vars:
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+    ansible_python_interpreter: /usr/bin/python3
+  children:
+    webservers:
+      vars:
+        http_port: 80
+        https_port: 443
+        max_connections: 1000
+      hosts:
+        web01:
+          ansible_host: node1
+          ansible_user: student
+          ansible_port: 22
+          server_id: "web-001"
+          datacenter: "us-east-1"
+        web02:
+          ansible_host: node2
+          ansible_user: student
+          ansible_port: 22
+          server_id: "web-002"
+          datacenter: "us-west-1"
+    databases:
+      vars:
+        db_port: 3306
+        max_connections: 500
+        backup_retention_days: 30
+      hosts:
+        db01:
+          ansible_host: node3
+          ansible_user: student
+          ansible_port: 22
+          server_id: "db-001"
+          datacenter: "us-central-1"
+          replication_role: master
+    loadbalancers:
+      vars:
+        lb_algorithm: round_robin
+        health_check_interval: 30
+      hosts:
+        lb01:
+          ansible_host: node1
+          ansible_user: student
+          server_id: "lb-001"
+          virtual_ip: "192.168.1.100"
+    regions:
+      children:
+        us_east:
+          hosts:
+            web01:
+        us_west:
+          hosts:
+            web02:
+        us_central:
+          hosts:
+            db01:

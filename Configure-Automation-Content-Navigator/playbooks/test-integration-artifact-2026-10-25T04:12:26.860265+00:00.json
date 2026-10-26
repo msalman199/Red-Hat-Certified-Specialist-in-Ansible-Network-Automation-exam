@@ -1,0 +1,953 @@
+{
+    "plays": [
+        {
+            "___progress": "100%",
+            "__changed": 2,
+            "__failed": 0,
+            "__ignored": 0,
+            "__in progress": 0,
+            "__ok": 6,
+            "__percent_complete": 100,
+            "__play_name": "Test Ansible Navigator Integration",
+            "__progress": "Complete",
+            "__skipped": 0,
+            "__task_count": 6,
+            "__unreachable": 0,
+            "name": "Test Ansible Navigator Integration",
+            "pattern": "localhost",
+            "play": "Test Ansible Navigator Integration",
+            "play_pattern": "localhost",
+            "play_uuid": "c6d43453-5415-ac4b-8b20-000000000001",
+            "playbook": "/home/centos/playbooks/test-integration.yml",
+            "playbook_uuid": "4bd55d4b-2a38-4684-8f3a-bb3b005f5acd",
+            "tasks": [
+                {
+                    "__changed": false,
+                    "__duration": "1s",
+                    "__host": "localhost",
+                    "__number": 0,
+                    "__result": "Ok",
+                    "__task": "Gathering Facts",
+                    "__task_action": "gather_facts",
+                    "duration": 1.401156,
+                    "end": "2026-10-25T04:12:24.096569+00:00",
+                    "event_loop": null,
+                    "host": "localhost",
+                    "play": "Test Ansible Navigator Integration",
+                    "play_pattern": "localhost",
+                    "play_uuid": "c6d43453-5415-ac4b-8b20-000000000001",
+                    "playbook": "/home/centos/playbooks/test-integration.yml",
+                    "playbook_uuid": "4bd55d4b-2a38-4684-8f3a-bb3b005f5acd",
+                    "remote_addr": "127.0.0.1",
+                    "res": {
+                        "_ansible_no_log": null,
+                        "_ansible_verbose_override": true,
+                        "ansible_facts": {
+                            "ansible_apparmor": {
+                                "status": "disabled"
+                            },
+                            "ansible_architecture": "x86_64",
+                            "ansible_bios_date": "10/16/2017",
+                            "ansible_bios_vendor": "Amazon EC2",
+                            "ansible_bios_version": "1.0",
+                            "ansible_board_asset_tag": "i-0064ddd010cede825",
+                            "ansible_board_name": "NA",
+                            "ansible_board_serial": "NA",
+                            "ansible_board_vendor": "Amazon EC2",
+                            "ansible_board_version": "NA",
+                            "ansible_chassis_asset_tag": "Amazon EC2",
+                            "ansible_chassis_serial": "NA",
+                            "ansible_chassis_vendor": "Amazon EC2",
+                            "ansible_chassis_version": "NA",
+                            "ansible_cmdline": {
+                                "BOOT_IMAGE": "(hd0,gpt3)/vmlinuz-5.14.0-654.el9.x86_64",
+                                "console": "ttyS0,115200n8",
+                                "crashkernel": "1G-2G:192M,2G-64G:256M,64G-:512M",
+                                "no_timer_check": true,
+                                "root": "UUID=596343d2-9dab-4c86-9dd0-4a537eb34256",
+                                "systemd.firstboot": "off",
+                                "systemd.mask": "serial-getty@ttyS3.service"
+                            },
+                            "ansible_date_time": {
+                                "date": "2026-10-25",
+                                "day": "25",
+                                "epoch": "1792901544",
+                                "epoch_int": "1792901544",
+                                "hour": "04",
+                                "iso8601": "2026-10-25T04:12:24Z",
+                                "iso8601_basic": "20261025T041224011966",
+                                "iso8601_basic_short": "20261025T041224",
+                                "iso8601_micro": "2026-10-25T04:12:24.011966Z",
+                                "minute": "12",
+                                "month": "10",
+                                "second": "24",
+                                "time": "04:12:24",
+                                "tz": "UTC",
+                                "tz_dst": "UTC",
+                                "tz_offset": "+0000",
+                                "weekday": "Sunday",
+                                "weekday_number": "0",
+                                "weeknumber": "42",
+                                "year": "2026"
+                            },
+                            "ansible_device_links": {
+                                "ids": {},
+                                "labels": {},
+                                "masters": {},
+                                "uuids": {}
+                            },
+                            "ansible_devices": {
+                                "nvme0n1": {
+                                    "holders": [],
+                                    "host": "",
+                                    "links": {
+                                        "ids": [],
+                                        "labels": [],
+                                        "masters": [],
+                                        "uuids": []
+                                    },
+                                    "model": "Amazon Elastic Block Store",
+                                    "partitions": {
+                                        "nvme0n1p1": {
+                                            "holders": [],
+                                            "links": {
+                                                "ids": [],
+                                                "labels": [],
+                                                "masters": [],
+                                                "uuids": []
+                                            },
+                                            "sectors": "4096",
+                                            "sectorsize": 512,
+                                            "size": "2.00 MB",
+                                            "start": "2048",
+                                            "uuid": null
+                                        },
+                                        "nvme0n1p2": {
+                                            "holders": [],
+                                            "links": {
+                                                "ids": [],
+                                                "labels": [],
+                                                "masters": [],
+                                                "uuids": []
+                                            },
+                                            "sectors": "1024000",
+                                            "sectorsize": 512,
+                                            "size": "500.00 MB",
+                                            "start": "6144",
+                                            "uuid": null
+                                        },
+                                        "nvme0n1p3": {
+                                            "holders": [],
+                                            "links": {
+                                                "ids": [],
+                                                "labels": [],
+                                                "masters": [],
+                                                "uuids": []
+                                            },
+                                            "sectors": "2048000",
+                                            "sectorsize": 512,
+                                            "size": "1000.00 MB",
+                                            "start": "1030144",
+                                            "uuid": null
+                                        },
+                                        "nvme0n1p4": {
+                                            "holders": [],
+                                            "links": {
+                                                "ids": [],
+                                                "labels": [],
+                                                "masters": [],
+                                                "uuids": []
+                                            },
+                                            "sectors": "59836383",
+                                            "sectorsize": 512,
+                                            "size": "28.53 GB",
+                                            "start": "3078144",
+                                            "uuid": null
+                                        }
+                                    },
+                                    "removable": "0",
+                                    "rotational": "0",
+                                    "sas_address": null,
+                                    "sas_device_handle": null,
+                                    "scheduler_mode": "none",
+                                    "sectors": "62914560",
+                                    "sectorsize": "512",
+                                    "serial": "vol0556c6f2f6558e797",
+                                    "size": "30.00 GB",
+                                    "support_discard": "512",
+                                    "vendor": null,
+                                    "virtual": 1
+                                },
+                                "nvme1n1": {
+                                    "holders": [],
+                                    "host": "",
+                                    "links": {
+                                        "ids": [],
+                                        "labels": [],
+                                        "masters": [],
+                                        "uuids": []
+                                    },
+                                    "model": "Amazon Elastic Block Store",
+                                    "partitions": {},
+                                    "removable": "0",
+                                    "rotational": "0",
+                                    "sas_address": null,
+                                    "sas_device_handle": null,
+                                    "scheduler_mode": "none",
+                                    "sectors": "83886080",
+                                    "sectorsize": "512",
+                                    "serial": "vol06a5b637a7848a14a",
+                                    "size": "40.00 GB",
+                                    "support_discard": "512",
+                                    "vendor": null,
+                                    "virtual": 1
+                                }
+                            },
+                            "ansible_distribution": "Fedora",
+                            "ansible_distribution_file_parsed": true,
+                            "ansible_distribution_file_path": "/etc/redhat-release",
+                            "ansible_distribution_file_variety": "RedHat",
+                            "ansible_distribution_major_version": "39",
+                            "ansible_distribution_release": "",
+                            "ansible_distribution_version": "39",
+                            "ansible_dns": {
+                                "nameservers": [
+                                    "169.254.1.1",
+                                    "172.31.0.2"
+                                ],
+                                "search": [
+                                    "ec2.internal"
+                                ]
+                            },
+                            "ansible_domain": "",
+                            "ansible_effective_group_id": 0,
+                            "ansible_effective_user_id": 0,
+                            "ansible_fibre_channel_wwn": [],
+                            "ansible_fips": false,
+                            "ansible_form_factor": "Other",
+                            "ansible_fqdn": "47012ffd0ee1",
+                            "ansible_hostname": "47012ffd0ee1",
+                            "ansible_hostnqn": "",
+                            "ansible_is_chroot": false,
+                            "ansible_iscsi_iqn": "",
+                            "ansible_kernel": "5.14.0-654.el9.x86_64",
+                            "ansible_kernel_version": "#1 SMP PREEMPT_DYNAMIC Fri Dec 19 08:34:59 UTC 2025",
+                            "ansible_loadavg": {
+                                "15m": 0.2802734375,
+                                "1m": 0.3427734375,
+                                "5m": 0.474609375
+                            },
+                            "ansible_local": {},
+                            "ansible_lsb": {},
+                            "ansible_lvm": "N/A",
+                            "ansible_machine": "x86_64",
+                            "ansible_machine_id": "c2bcc6bdd2a24e91baa1c951e56274b8",
+                            "ansible_memfree_mb": 12681,
+                            "ansible_memory_mb": {
+                                "nocache": {
+                                    "free": 14546,
+                                    "used": 1025
+                                },
+                                "real": {
+                                    "free": 12681,
+                                    "total": 15571,
+                                    "used": 2890
+                                },
+                                "swap": {
+                                    "cached": 0,
+                                    "free": 0,
+                                    "total": 0,
+                                    "used": 0
+                                }
+                            },
+                            "ansible_memtotal_mb": 15571,
+                            "ansible_mounts": [
+                                {
+                                    "block_available": 5063731,
+                                    "block_size": 4096,
+                                    "block_total": 7463163,
+                                    "block_used": 2399432,
+                                    "device": "/dev/nvme0n1p4",
+                                    "fstype": "xfs",
+                                    "inode_available": 14738308,
+                                    "inode_total": 14959040,
+                                    "inode_used": 220732,
+                                    "mount": "/runner",
+                                    "options": "rw,seclabel,relatime,attr2,inode64,logbufs=8,logbsize=32k,noquota,bind",
+                                    "size_available": 20741042176,
+                                    "size_total": 30569115648,
+                                    "uuid": "N/A"
+                                },
+                                {
+                                    "block_available": 5063731,
+                                    "block_size": 4096,
+                                    "block_total": 7463163,
+                                    "block_used": 2399432,
+                                    "device": "/dev/nvme0n1p4",
+                                    "fstype": "xfs",
+                                    "inode_available": 14738308,
+                                    "inode_total": 14959040,
+                                    "inode_used": 220732,
+                                    "mount": "/root/.ssh",
+                                    "options": "rw,seclabel,relatime,attr2,inode64,logbufs=8,logbsize=32k,noquota,bind",
+                                    "size_available": 20741042176,
+                                    "size_total": 30569115648,
+                                    "uuid": "N/A"
+                                },
+                                {
+                                    "block_available": 5063731,
+                                    "block_size": 4096,
+                                    "block_total": 7463163,
+                                    "block_used": 2399432,
+                                    "device": "/dev/nvme0n1p4",
+                                    "fstype": "xfs",
+                                    "inode_available": 14738308,
+                                    "inode_total": 14959040,
+                                    "inode_used": 220732,
+                                    "mount": "/runner/artifacts",
+                                    "options": "rw,seclabel,relatime,attr2,inode64,logbufs=8,logbsize=32k,noquota,bind",
+                                    "size_available": 20741042176,
+                                    "size_total": 30569115648,
+                                    "uuid": "N/A"
+                                },
+                                {
+                                    "block_available": 5063731,
+                                    "block_size": 4096,
+                                    "block_total": 7463163,
+                                    "block_used": 2399432,
+                                    "device": "/dev/nvme0n1p4",
+                                    "fstype": "xfs",
+                                    "inode_available": 14738308,
+                                    "inode_total": 14959040,
+                                    "inode_used": 220732,
+                                    "mount": "/home/centos",
+                                    "options": "rw,seclabel,relatime,attr2,inode64,logbufs=8,logbsize=32k,noquota,bind",
+                                    "size_available": 20741042176,
+                                    "size_total": 30569115648,
+                                    "uuid": "N/A"
+                                },
+                                {
+                                    "block_available": 5063731,
+                                    "block_size": 4096,
+                                    "block_total": 7463163,
+                                    "block_used": 2399432,
+                                    "device": "/dev/nvme0n1p4",
+                                    "fstype": "xfs",
+                                    "inode_available": 14738308,
+                                    "inode_total": 14959040,
+                                    "inode_used": 220732,
+                                    "mount": "/home/centos/.local/share/containers/storage/overlay",
+                                    "options": "rw,seclabel,relatime,attr2,inode64,logbufs=8,logbsize=32k,noquota,bind",
+                                    "size_available": 20741042176,
+                                    "size_total": 30569115648,
+                                    "uuid": "N/A"
+                                },
+                                {
+                                    "block_available": 5063731,
+                                    "block_size": 4096,
+                                    "block_total": 7463163,
+                                    "block_used": 2399432,
+                                    "device": "/dev/nvme0n1p4",
+                                    "fstype": "xfs",
+                                    "inode_available": 14738308,
+                                    "inode_total": 14959040,
+                                    "inode_used": 220732,
+                                    "mount": "/home/centos/playbooks",
+                                    "options": "rw,seclabel,relatime,attr2,inode64,logbufs=8,logbsize=32k,noquota,bind",
+                                    "size_available": 20741042176,
+                                    "size_total": 30569115648,
+                                    "uuid": "N/A"
+                                },
+                                {
+                                    "block_available": 5063731,
+                                    "block_size": 4096,
+                                    "block_total": 7463163,
+                                    "block_used": 2399432,
+                                    "device": "/dev/nvme0n1p4",
+                                    "fstype": "xfs",
+                                    "inode_available": 14738308,
+                                    "inode_total": 14959040,
+                                    "inode_used": 220732,
+                                    "mount": "/home/runner/.ssh",
+                                    "options": "rw,seclabel,relatime,attr2,inode64,logbufs=8,logbsize=32k,noquota,bind",
+                                    "size_available": 20741042176,
+                                    "size_total": 30569115648,
+                                    "uuid": "N/A"
+                                }
+                            ],
+                            "ansible_nodename": "47012ffd0ee1",
+                            "ansible_os_family": "RedHat",
+                            "ansible_pkg_mgr": "dnf5",
+                            "ansible_proc_cmdline": {
+                                "BOOT_IMAGE": "(hd0,gpt3)/vmlinuz-5.14.0-654.el9.x86_64",
+                                "console": [
+                                    "tty1",
+                                    "ttyS0,115200n8"
+                                ],
+                                "crashkernel": "1G-2G:192M,2G-64G:256M,64G-:512M",
+                                "no_timer_check": true,
+                                "root": "UUID=596343d2-9dab-4c86-9dd0-4a537eb34256",
+                                "systemd.firstboot": "off",
+                                "systemd.mask": [
+                                    "serial-getty@ttyS1.service",
+                                    "serial-getty@ttyS2.service",
+                                    "serial-getty@ttyS3.service"
+                                ]
+                            },
+                            "ansible_processor": [
+                                "0",
+                                "AuthenticAMD",
+                                "AMD EPYC 7571",
+                                "1",
+                                "AuthenticAMD",
+                                "AMD EPYC 7571",
+                                "2",
+                                "AuthenticAMD",
+                                "AMD EPYC 7571",
+                                "3",
+                                "AuthenticAMD",
+                                "AMD EPYC 7571"
+                            ],
+                            "ansible_processor_cores": 2,
+                            "ansible_processor_count": 1,
+                            "ansible_processor_nproc": 4,
+                            "ansible_processor_threads_per_core": 2,
+                            "ansible_processor_vcpus": 4,
+                            "ansible_product_name": "t3a.xlarge",
+                            "ansible_product_serial": "NA",
+                            "ansible_product_uuid": "NA",
+                            "ansible_product_version": "NA",
+                            "ansible_python": {
+                                "executable": "/usr/bin/python3",
+                                "has_sslcontext": true,
+                                "type": "cpython",
+                                "version": {
+                                    "major": 3,
+                                    "micro": 1,
+                                    "minor": 12,
+                                    "releaselevel": "final",
+                                    "serial": 0
+                                },
+                                "version_info": [
+                                    3,
+                                    12,
+                                    1,
+                                    "final",
+                                    0
+                                ]
+                            },
+                            "ansible_python_version": "3.12.1",
+                            "ansible_real_group_id": 0,
+                            "ansible_real_user_id": 0,
+                            "ansible_selinux": {
+                                "status": "disabled"
+                            },
+                            "ansible_selinux_python_present": true,
+                            "ansible_service_mgr": "dumb-init",
+                            "ansible_swapfree_mb": 0,
+                            "ansible_swaptotal_mb": 0,
+                            "ansible_system": "Linux",
+                            "ansible_system_capabilities": [
+                                "ep"
+                            ],
+                            "ansible_system_capabilities_enforced": "True",
+                            "ansible_system_vendor": "Amazon EC2",
+                            "ansible_uptime_seconds": 459,
+                            "ansible_user_dir": "/home/runner",
+                            "ansible_user_gecos": "Super User",
+                            "ansible_user_gid": 0,
+                            "ansible_user_id": "root",
+                            "ansible_user_shell": "/bin/bash",
+                            "ansible_user_uid": 0,
+                            "ansible_userspace_architecture": "x86_64",
+                            "ansible_userspace_bits": "64",
+                            "ansible_virtualization_role": "guest",
+                            "ansible_virtualization_tech_guest": [
+                                "container",
+                                "kvm"
+                            ],
+                            "ansible_virtualization_tech_host": [],
+                            "ansible_virtualization_type": "container",
+                            "gather_subset": [
+                                "all"
+                            ],
+                            "module_setup": true
+                        },
+                        "changed": false,
+                        "deprecations": [],
+                        "warnings": []
+                    },
+                    "resolved_action": "ansible.builtin.gather_facts",
+                    "start": "2026-10-25T04:12:22.695413+00:00",
+                    "task": "Gathering Facts",
+                    "task_action": "gather_facts",
+                    "task_args": "",
+                    "task_path": "/home/centos/playbooks/test-integration.yml:2",
+                    "task_uuid": "c6d43453-5415-ac4b-8b20-00000000000c",
+                    "uuid": "3f75093b-f66e-4620-8ae4-4f226e177baf"
+                },
+                {
+                    "__changed": false,
+                    "__duration": "0s",
+                    "__host": "localhost",
+                    "__number": 1,
+                    "__result": "Ok",
+                    "__task": "Display system information",
+                    "__task_action": "debug",
+                    "duration": 0.020246,
+                    "end": "2026-10-25T04:12:24.143629+00:00",
+                    "event_loop": null,
+                    "host": "localhost",
+                    "play": "Test Ansible Navigator Integration",
+                    "play_pattern": "localhost",
+                    "play_uuid": "c6d43453-5415-ac4b-8b20-000000000001",
+                    "playbook": "/home/centos/playbooks/test-integration.yml",
+                    "playbook_uuid": "4bd55d4b-2a38-4684-8f3a-bb3b005f5acd",
+                    "remote_addr": "127.0.0.1",
+                    "res": {
+                        "_ansible_no_log": null,
+                        "_ansible_verbose_always": true,
+                        "changed": false,
+                        "msg": "Hostname: 47012ffd0ee1\nOS Family: RedHat\nPython Version: 3.12.1\n"
+                    },
+                    "resolved_action": "ansible.builtin.debug",
+                    "start": "2026-10-25T04:12:24.123383+00:00",
+                    "task": "Display system information",
+                    "task_action": "debug",
+                    "task_args": "",
+                    "task_path": "/home/centos/playbooks/test-integration.yml:11",
+                    "task_uuid": "c6d43453-5415-ac4b-8b20-000000000003",
+                    "uuid": "ee77e428-98bf-4440-85a0-e391c007bf39"
+                },
+                {
+                    "__changed": true,
+                    "__duration": "1s",
+                    "__host": "localhost",
+                    "__number": 2,
+                    "__result": "Ok",
+                    "__task": "Create test directory",
+                    "__task_action": "file",
+                    "duration": 0.628044,
+                    "end": "2026-10-25T04:12:24.782345+00:00",
+                    "event_loop": null,
+                    "host": "localhost",
+                    "play": "Test Ansible Navigator Integration",
+                    "play_pattern": "localhost",
+                    "play_uuid": "c6d43453-5415-ac4b-8b20-000000000001",
+                    "playbook": "/home/centos/playbooks/test-integration.yml",
+                    "playbook_uuid": "4bd55d4b-2a38-4684-8f3a-bb3b005f5acd",
+                    "remote_addr": "127.0.0.1",
+                    "res": {
+                        "_ansible_no_log": null,
+                        "changed": true,
+                        "diff": {
+                            "after": {
+                                "path": "/tmp/navigator-test",
+                                "state": "directory"
+                            },
+                            "before": {
+                                "path": "/tmp/navigator-test",
+                                "state": "absent"
+                            }
+                        },
+                        "gid": 0,
+                        "group": "root",
+                        "invocation": {
+                            "module_args": {
+                                "_diff_peek": null,
+                                "_original_basename": null,
+                                "access_time": null,
+                                "access_time_format": "%Y%m%d%H%M.%S",
+                                "attributes": null,
+                                "follow": true,
+                                "force": false,
+                                "group": null,
+                                "mode": "0755",
+                                "modification_time": null,
+                                "modification_time_format": "%Y%m%d%H%M.%S",
+                                "owner": null,
+                                "path": "/tmp/navigator-test",
+                                "recurse": false,
+                                "selevel": null,
+                                "serole": null,
+                                "setype": null,
+                                "seuser": null,
+                                "src": null,
+                                "state": "directory",
+                                "unsafe_writes": true
+                            }
+                        },
+                        "mode": "0755",
+                        "owner": "root",
+                        "path": "/tmp/navigator-test",
+                        "size": 6,
+                        "state": "directory",
+                        "uid": 0
+                    },
+                    "resolved_action": "ansible.builtin.file",
+                    "start": "2026-10-25T04:12:24.154301+00:00",
+                    "task": "Create test directory",
+                    "task_action": "file",
+                    "task_args": "",
+                    "task_path": "/home/centos/playbooks/test-integration.yml:18",
+                    "task_uuid": "c6d43453-5415-ac4b-8b20-000000000004",
+                    "uuid": "97f238f7-e9b1-4af7-883d-e8b76c18aac6"
+                },
+                {
+                    "__changed": true,
+                    "__duration": "1s",
+                    "__host": "localhost",
+                    "__number": 3,
+                    "__result": "Ok",
+                    "__task": "Write test file",
+                    "__task_action": "copy",
+                    "duration": 1.188876,
+                    "end": "2026-10-25T04:12:25.983023+00:00",
+                    "event_loop": null,
+                    "host": "localhost",
+                    "play": "Test Ansible Navigator Integration",
+                    "play_pattern": "localhost",
+                    "play_uuid": "c6d43453-5415-ac4b-8b20-000000000001",
+                    "playbook": "/home/centos/playbooks/test-integration.yml",
+                    "playbook_uuid": "4bd55d4b-2a38-4684-8f3a-bb3b005f5acd",
+                    "remote_addr": "127.0.0.1",
+                    "res": {
+                        "_ansible_no_log": null,
+                        "changed": true,
+                        "checksum": "a7700b24e2493f9343e1de74af5027838b515f40",
+                        "dest": "/tmp/navigator-test/integration-test.txt",
+                        "diff": [],
+                        "gid": 0,
+                        "group": "root",
+                        "invocation": {
+                            "module_args": {
+                                "_original_basename": "tmp03r6gl56",
+                                "attributes": null,
+                                "backup": false,
+                                "checksum": "a7700b24e2493f9343e1de74af5027838b515f40",
+                                "content": null,
+                                "dest": "/tmp/navigator-test/integration-test.txt",
+                                "directory_mode": null,
+                                "follow": false,
+                                "force": true,
+                                "group": null,
+                                "local_follow": null,
+                                "mode": "0644",
+                                "owner": null,
+                                "remote_src": null,
+                                "selevel": null,
+                                "serole": null,
+                                "setype": null,
+                                "seuser": null,
+                                "src": "/home/runner/.ansible/tmp/ansible-tmp-1792901544.819283-66-41395079621350/source",
+                                "unsafe_writes": true,
+                                "validate": null
+                            }
+                        },
+                        "md5sum": "5c009fd200ecf65dc8e355b39564dbf5",
+                        "mode": "0644",
+                        "owner": "root",
+                        "size": 88,
+                        "src": "/home/runner/.ansible/tmp/ansible-tmp-1792901544.819283-66-41395079621350/source",
+                        "state": "file",
+                        "uid": 0
+                    },
+                    "resolved_action": "ansible.builtin.copy",
+                    "start": "2026-10-25T04:12:24.794147+00:00",
+                    "task": "Write test file",
+                    "task_action": "copy",
+                    "task_args": "",
+                    "task_path": "/home/centos/playbooks/test-integration.yml:24",
+                    "task_uuid": "c6d43453-5415-ac4b-8b20-000000000005",
+                    "uuid": "aa402a48-b8d2-443c-a073-961be6ba514d"
+                },
+                {
+                    "__changed": false,
+                    "__duration": "0s",
+                    "__host": "localhost",
+                    "__number": 4,
+                    "__result": "Ok",
+                    "__task": "Verify file creation",
+                    "__task_action": "stat",
+                    "duration": 0.386795,
+                    "end": "2026-10-25T04:12:26.383492+00:00",
+                    "event_loop": null,
+                    "host": "localhost",
+                    "play": "Test Ansible Navigator Integration",
+                    "play_pattern": "localhost",
+                    "play_uuid": "c6d43453-5415-ac4b-8b20-000000000001",
+                    "playbook": "/home/centos/playbooks/test-integration.yml",
+                    "playbook_uuid": "4bd55d4b-2a38-4684-8f3a-bb3b005f5acd",
+                    "remote_addr": "127.0.0.1",
+                    "res": {
+                        "_ansible_no_log": null,
+                        "changed": false,
+                        "invocation": {
+                            "module_args": {
+                                "checksum_algorithm": "sha1",
+                                "follow": false,
+                                "get_attributes": true,
+                                "get_checksum": true,
+                                "get_mime": true,
+                                "path": "/tmp/navigator-test/integration-test.txt"
+                            }
+                        },
+                        "stat": {
+                            "atime": 1792901545.942639,
+                            "attr_flags": "",
+                            "attributes": [],
+                            "block_size": 4096,
+                            "blocks": 8,
+                            "charset": "unknown",
+                            "checksum": "a7700b24e2493f9343e1de74af5027838b515f40",
+                            "ctime": 1792901545.942639,
+                            "dev": 45,
+                            "device_type": 0,
+                            "executable": false,
+                            "exists": true,
+                            "gid": 0,
+                            "gr_name": "root",
+                            "inode": 10588148,
+                            "isblk": false,
+                            "ischr": false,
+                            "isdir": false,
+                            "isfifo": false,
+                            "isgid": false,
+                            "islnk": false,
+                            "isreg": true,
+                            "issock": false,
+                            "isuid": false,
+                            "mimetype": "unknown",
+                            "mode": "0644",
+                            "mtime": 1792901545.3906384,
+                            "nlink": 1,
+                            "path": "/tmp/navigator-test/integration-test.txt",
+                            "pw_name": "root",
+                            "readable": true,
+                            "rgrp": true,
+                            "roth": true,
+                            "rusr": true,
+                            "size": 88,
+                            "uid": 0,
+                            "version": null,
+                            "wgrp": false,
+                            "woth": false,
+                            "writeable": true,
+                            "wusr": true,
+                            "xgrp": false,
+                            "xoth": false,
+                            "xusr": false
+                        }
+                    },
+                    "resolved_action": "ansible.builtin.stat",
+                    "start": "2026-10-25T04:12:25.996697+00:00",
+                    "task": "Verify file creation",
+                    "task_action": "stat",
+                    "task_args": "",
+                    "task_path": "/home/centos/playbooks/test-integration.yml:33",
+                    "task_uuid": "c6d43453-5415-ac4b-8b20-000000000006",
+                    "uuid": "a46a6d46-9a4e-4f9d-a2ef-3483125faed8"
+                },
+                {
+                    "__changed": false,
+                    "__duration": "0s",
+                    "__host": "localhost",
+                    "__number": 5,
+                    "__result": "Ok",
+                    "__task": "Display test results",
+                    "__task_action": "debug",
+                    "duration": 0.021742,
+                    "end": "2026-10-25T04:12:26.416791+00:00",
+                    "event_loop": null,
+                    "host": "localhost",
+                    "play": "Test Ansible Navigator Integration",
+                    "play_pattern": "localhost",
+                    "play_uuid": "c6d43453-5415-ac4b-8b20-000000000001",
+                    "playbook": "/home/centos/playbooks/test-integration.yml",
+                    "playbook_uuid": "4bd55d4b-2a38-4684-8f3a-bb3b005f5acd",
+                    "remote_addr": "127.0.0.1",
+                    "res": {
+                        "_ansible_no_log": null,
+                        "_ansible_verbose_always": true,
+                        "changed": false,
+                        "msg": "Test file created successfully: True"
+                    },
+                    "resolved_action": "ansible.builtin.debug",
+                    "start": "2026-10-25T04:12:26.395049+00:00",
+                    "task": "Display test results",
+                    "task_action": "debug",
+                    "task_args": "",
+                    "task_path": "/home/centos/playbooks/test-integration.yml:38",
+                    "task_uuid": "c6d43453-5415-ac4b-8b20-000000000007",
+                    "uuid": "00caaf81-c1e5-4861-b9c8-4d62636e1ba9"
+                }
+            ],
+            "uuid": "c6d43453-5415-ac4b-8b20-000000000001"
+        }
+    ],
+    "settings_entries": {
+        "ansible-navigator": {
+            "ansible": {
+                "config": {
+                    "help": false
+                },
+                "doc": {
+                    "help": false,
+                    "plugin": {
+                        "type": "module"
+                    }
+                },
+                "inventory": {
+                    "help": false
+                },
+                "playbook": {
+                    "help": false,
+                    "path": "/home/centos/playbooks/test-integration.yml"
+                }
+            },
+            "ansible-builder": {
+                "help": false,
+                "workdir": "/home/centos"
+            },
+            "ansible-runner": {
+                "job-events": false
+            },
+            "app": "run",
+            "collection-doc-cache-path": "/home/centos/.cache/ansible-navigator/collection_doc_cache.db",
+            "color": {
+                "enable": true,
+                "osc4": true
+            },
+            "editor": {
+                "command": "vi +{line_number} {filename}",
+                "console": true
+            },
+            "enable-prompts": false,
+            "exec": {
+                "command": "/bin/bash",
+                "shell": true
+            },
+            "execution-environment": {
+                "container-engine": "podman",
+                "enabled": true,
+                "image": "ghcr.io/ansible/creator-ee:v0.22.0",
+                "pull": {
+                    "policy": "tag"
+                }
+            },
+            "format": "yaml",
+            "images": {
+                "details": [
+                    "everything"
+                ]
+            },
+            "logging": {
+                "append": true,
+                "file": "/home/centos/ansible-navigator.log",
+                "level": "warning"
+            },
+            "mode": "interactive",
+            "playbook-artifact": {
+                "enable": true,
+                "save-as": "{playbook_dir}/{playbook_name}-artifact-{time_stamp}.json"
+            },
+            "settings": {
+                "effective": false,
+                "sample": false,
+                "schema": "json",
+                "sources": false
+            },
+            "time-zone": "UTC"
+        }
+    },
+    "settings_sources": {
+        "ansible-navigator.ansible-builder.help": "Defaults",
+        "ansible-navigator.ansible-builder.workdir": "Defaults",
+        "ansible-navigator.ansible-lint.config": "Not set",
+        "ansible-navigator.ansible-lint.lintables": "Not set",
+        "ansible-navigator.ansible-runner.artifact-dir": "Not set",
+        "ansible-navigator.ansible-runner.job-events": "Defaults",
+        "ansible-navigator.ansible-runner.rotate-artifacts-count": "Not set",
+        "ansible-navigator.ansible-runner.timeout": "Not set",
+        "ansible-navigator.ansible.cmdline": "Not set",
+        "ansible-navigator.ansible.config.help": "Defaults",
+        "ansible-navigator.ansible.config.path": "Not set",
+        "ansible-navigator.ansible.doc.help": "Defaults",
+        "ansible-navigator.ansible.doc.plugin.name": "Not set",
+        "ansible-navigator.ansible.doc.plugin.type": "Defaults",
+        "ansible-navigator.ansible.inventory.entries": "Not set",
+        "ansible-navigator.ansible.inventory.help": "Defaults",
+        "ansible-navigator.ansible.playbook.help": "Defaults",
+        "ansible-navigator.ansible.playbook.path": "Previous cli command",
+        "ansible-navigator.app": "Command line",
+        "ansible-navigator.collection-doc-cache-path": "Defaults",
+        "ansible-navigator.color.enable": "Defaults",
+        "ansible-navigator.color.osc4": "Defaults",
+        "ansible-navigator.editor.command": "Defaults",
+        "ansible-navigator.editor.console": "Defaults",
+        "ansible-navigator.enable-prompts": "Defaults",
+        "ansible-navigator.exec.command": "Defaults",
+        "ansible-navigator.exec.shell": "Defaults",
+        "ansible-navigator.execution-environment.container-engine": "Automatically determined",
+        "ansible-navigator.execution-environment.container-options": "Not set",
+        "ansible-navigator.execution-environment.enabled": "Defaults",
+        "ansible-navigator.execution-environment.environment-variables.pass": "Not set",
+        "ansible-navigator.execution-environment.environment-variables.set": "Not set",
+        "ansible-navigator.execution-environment.image": "Defaults",
+        "ansible-navigator.execution-environment.pull.arguments": "Not set",
+        "ansible-navigator.execution-environment.pull.policy": "Defaults",
+        "ansible-navigator.execution-environment.volume-mounts": "Not set",
+        "ansible-navigator.format": "Defaults",
+        "ansible-navigator.images.details": "Defaults",
+        "ansible-navigator.inventory-columns": "Not set",
+        "ansible-navigator.logging.append": "Defaults",
+        "ansible-navigator.logging.file": "Defaults",
+        "ansible-navigator.logging.level": "Defaults",
+        "ansible-navigator.mode": "Defaults",
+        "ansible-navigator.playbook-artifact.enable": "Defaults",
+        "ansible-navigator.playbook-artifact.replay": "Not set",
+        "ansible-navigator.playbook-artifact.save-as": "Defaults",
+        "ansible-navigator.settings.effective": "Defaults",
+        "ansible-navigator.settings.sample": "Defaults",
+        "ansible-navigator.settings.schema": "Defaults",
+        "ansible-navigator.settings.sources": "Defaults",
+        "ansible-navigator.time-zone": "Defaults",
+        "settings_file_path": "None",
+        "settings_file_source": "None"
+    },
+    "status": "successful",
+    "status_color": 10,
+    "stdout": [
+        "\u001b[1;35m[WARNING]: No inventory was parsed, only implicit localhost is available\u001b[0m",
+        "\u001b[1;35m[WARNING]: provided hosts list is empty, only localhost is available. Note that\u001b[0m",
+        "\u001b[1;35mthe implicit localhost does not match 'all'\u001b[0m",
+        "",
+        "PLAY [Test Ansible Navigator Integration] **************************************",
+        "",
+        "TASK [Gathering Facts] *********************************************************",
+        "\u001b[0;32mok: [localhost]\u001b[0m",
+        "",
+        "TASK [Display system information] **********************************************",
+        "\u001b[0;32mok: [localhost] => {\u001b[0m",
+        "\u001b[0;32m    \"msg\": \"Hostname: 47012ffd0ee1\\nOS Family: RedHat\\nPython Version: 3.12.1\\n\"\u001b[0m",
+        "\u001b[0;32m}\u001b[0m",
+        "",
+        "TASK [Create test directory] ***************************************************",
+        "\u001b[0;33mchanged: [localhost]\u001b[0m",
+        "",
+        "TASK [Write test file] *********************************************************",
+        "\u001b[0;33mchanged: [localhost]\u001b[0m",
+        "",
+        "TASK [Verify file creation] ****************************************************",
+        "\u001b[0;32mok: [localhost]\u001b[0m",
+        "",
+        "TASK [Display test results] ****************************************************",
+        "\u001b[0;32mok: [localhost] => {\u001b[0m",
+        "\u001b[0;32m    \"msg\": \"Test file created successfully: True\"\u001b[0m",
+        "\u001b[0;32m}\u001b[0m",
+        "",
+        "PLAY RECAP *********************************************************************",
+        "\u001b[0;33mlocalhost\u001b[0m                  : \u001b[0;32mok=6   \u001b[0m \u001b[0;33mchanged=2   \u001b[0m unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   "
+    ],
+    "version": "2.0.0"
+}

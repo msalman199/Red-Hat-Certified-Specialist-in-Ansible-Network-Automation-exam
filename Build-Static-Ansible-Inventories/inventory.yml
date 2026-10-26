@@ -1,0 +1,50 @@
+---
+all:
+  vars:
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+    company: "Al Nafi Training"
+  children:
+    webservers:
+      vars:
+        http_port: 80
+        https_port: 443
+        web_package: apache2
+      hosts:
+        node1:
+          ansible_host: node1
+          ansible_user: student
+          server_role: frontend
+          cpu_cores: 2
+        node2:
+          ansible_host: node2
+          ansible_user: student
+          server_role: backend
+          cpu_cores: 4
+    databases:
+      vars:
+        db_port: 3306
+        backup_schedule: "0 2 * * *"
+      hosts:
+        node3:
+          ansible_host: node3
+          ansible_user: student
+          db_type: mysql
+          storage_size: "100GB"
+    development:
+      vars:
+        log_level: debug
+        monitoring_enabled: false
+      hosts:
+        node1:
+          environment: dev
+        node2:
+          environment: dev
+    production:
+      vars:
+        log_level: info
+        monitoring_enabled: true
+        backup_enabled: true
+      hosts:
+        node3:
+          environment: prod
+

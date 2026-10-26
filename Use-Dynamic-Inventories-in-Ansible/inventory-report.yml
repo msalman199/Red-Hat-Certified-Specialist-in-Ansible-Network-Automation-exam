@@ -1,0 +1,31 @@
+---
+- name: Generate Dynamic Inventory Report
+  hosts: localhost
+  gather_facts: no
+  vars:
+    inventory_file: "aws_ec2_advanced.yml"
+  tasks:
+    - name: Get inventory data
+      shell: ansible-inventory -i {{ inventory_file }} --list
+      register: inventory_data
+
+    - name: Parse inventory JSON
+      set_fact:
+        inventory_json: "{{ inventory_data.stdout | from_json }}"
+
+    - name: Create report directory
+      file:
+        path: ./reports
+        state: directory
+
+    - name: Generate summary report
+      template:
+        src: inventory_report.j2
+        dest: ./reports/inventory_summary.txt
+      vars:
+        all_hosts: "{{ inventory_json._meta.hostvars.keys() | list }}"
+        groups: "{{ inventory_json.keys() | reject('match', '_meta') | list }}"
+
+    - name: Display report location
+      debug:
+        msg: "Inventory report generated at ./reports/inventory_summary.txt"
