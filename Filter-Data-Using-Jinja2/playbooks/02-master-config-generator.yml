@@ -1,0 +1,29 @@
+---
+- name: Master configuration generator
+  hosts: local
+  gather_facts: true
+  vars_files:
+    - ../vars/sample_data.yml
+
+  tasks:
+    - name: Create output directories
+      file:
+        path: "{{ playbook_dir }}/../output/{{ item }}"
+        state: directory
+      loop:
+        - network-configs
+        - app-configs
+
+    - name: Generate router configuration
+      template:
+        src: ../templates/router-config.j2
+        dest: "{{ playbook_dir }}/../output/network-configs/{{ inventory_hostname }}-router.cfg"
+
+    - name: Generate application configuration
+      template:
+        src: ../templates/app-config.j2
+        dest: "{{ playbook_dir }}/../output/app-configs/{{ inventory_hostname }}-app.cfg"
+
+    - name: Display confirmation message
+      debug:
+        msg: "Configuration files generated under {{ playbook_dir }}/../output/"

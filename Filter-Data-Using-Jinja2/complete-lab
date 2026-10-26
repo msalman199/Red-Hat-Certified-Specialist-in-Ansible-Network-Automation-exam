@@ -1,0 +1,305 @@
+Lab: Filter Data Using Jinja2 in Ansible
+Objectives
+By the end of this lab, students will be able to:
+
+Understand the fundamentals of Jinja2 templating in Ansible
+Apply built-in Jinja2 filters for string manipulation, list/dictionary processing, and data conversion
+Build a Jinja2 template that generates a network device configuration file
+Build a Jinja2 template that generates an application configuration file from the same source data
+Verify generated output against the source variables to confirm the templating logic is correct
+Prerequisites
+Before starting this lab, students should have:
+
+Basic understanding of Ansible playbooks and YAML syntax
+Familiarity with Linux command line operations
+Understanding of data types (strings, lists, dictionaries)
+Previous exposure to Ansible variables and facts
+This lab runs entirely against localhost, so no remote target hosts or SSH connectivity are required. All templates are rendered locally and written to a local output directory.
+
+Install Ansible on your practice machine before starting:
+
+python3 -m pip install --user ansible
+ansible --version
+You should see ansible [core X.Y.Z] or similar output confirming the installation succeeded.
+
+Lab Environment
+This lab uses a single control node (your practice machine) and runs all plays against localhost with connection: local. No inventory of remote hosts, SSH keys, or network access to other machines is needed. This keeps the lab fully self-contained and focused on Jinja2 templating logic rather than infrastructure setup.
+
+Task 1: Explore Core Jinja2 Filters
+Subtask 1.1: Set Up the Lab Directory Structure
+Create a working directory and the source data file that every later task will reuse.
+
+mkdir -p ~/ansible-jinja2-lab
+cd ~/ansible-jinja2-lab
+mkdir -p playbooks templates vars output
+
+cat > ansible.cfg << 'EOF'
+[defaults]
+inventory = inventory.ini
+host_key_checking = False
+EOF
+
+cat > inventory.ini << 'EOF'
+[local]
+localhost ansible_connection=local ansible_python_interpreter=auto_silent
+EOF
+Deliverable: the directory ~/ansible-jinja2-lab exists with playbooks/, templates/, vars/, output/, ansible.cfg, and inventory.ini. Confirm with ls -R ~/ansible-jinja2-lab.
+
+Subtask 1.2: Create Sample Data Variables
+This variable file is the single source of data used by every playbook and template in the lab.
+
+cat > vars/sample_data.yml << 'EOF'
+---
+users:
+  - name: john_doe
+    email: john.doe@company.com
+    department: engineering
+    join_date: "2023-01-15"
+    active: true
+  - name: jane_smith
+    email: jane.smith@company.com
+    department: marketing
+    join_date: "2022-11-20"
+    active: false
+  - name: bob_wilson
+    email: bob.wilson@company.com
+    department: sales
+    join_date: "2023-03-10"
+    active: true
+
+network_config:
+  domain: company.local
+  dns_servers:
+    - 8.8.8.8
+    - 8.8.4.4
+  vlans:
+    - id: 10
+      name: management
+      subnet: 192.168.10.0/24
+    - id: 20
+      name: production
+      subnet: 192.168.20.0/24
+
+app_settings:
+  version: "2.4.1"
+  environment: production
+  debug_mode: false
+  max_connections: 1000
+  timeout: 30
+EOF
+Deliverable: vars/sample_data.yml is created. Validate it parses correctly:
+
+ansible localhost -m debug -a "var=hostvars" -e "@vars/sample_data.yml" | head -n 5
+You should see no YAML parsing errors in the output.
+
+Subtask 1.3: Apply Basic String and List Filters
+cat > playbooks/01-string-filters.yml << 'EOF'
+---
+- name: Demonstrate basic Jinja2 filters
+  hosts: local
+  gather_facts: false
+  vars_files:
+    - ../vars/sample_data.yml
+  vars:
+    sample_text: "  Hello World from Ansible  "
+    mixed_case: "ThIs Is MiXeD cAsE tExT"
+
+  tasks:
+    - name: Display original strings
+      debug:
+        msg:
+          - "Original text: '{{ sample_text }}'"
+          - "Mixed case: '{{ mixed_case }}'"
+
+    - name: Apply case and whitespace filters
+      debug:
+        msg:
+          - "Uppercase: {{ sample_text | upper }}"
+          - "Lowercase: {{ mixed_case | lower }}"
+          - "Title case: {{ mixed_case | title }}"
+          - "Trimmed: '{{ sample_text | trim }}'"
+          - "Replaced: {{ sample_text | replace('World', 'Universe') }}"
+          - "Length of trimmed text: {{ sample_text | trim | length }}"
+
+    - name: Chain multiple filters together
+      debug:
+        msg: "Chained: {{ sample_text | trim | upper | replace('HELLO', 'GREETINGS') }}"
+
+    - name: Extract and transform list data from users
+      debug:
+        msg:
+          - "All user names: {{ users | map(attribute='name') | list }}"
+          - "Active user names: {{ users | selectattr('active') | map(attribute='name') | list }}"
+          - "Engineering users: {{ users | selectattr('department', 'equalto', 'engineering') | map(attribute='name') | list }}"
+          - "Sorted VLAN IDs: {{ network_config.vlans | map(attribute='id') | list | sort }}"
+EOF
+
+ansible-playbook playbooks/01-string-filters.yml
+Deliverable and expected result: the playbook completes with PLAY RECAP showing ok=4 and no failed tasks. The debug output for the last task must display Active user names: ["john_doe", "bob_wilson"] and Engineering users: ["john_doe"], confirming selectattr and map filtered the list correctly.
+
+Task 2: Build Jinja2 Templates for Configuration Files
+Subtask 2.1: Create a Network Device Configuration Template
+cat > templates/router-config.j2 << 'EOF'
+!
+! Router Configuration Generated by Ansible
+! Generated on: {{ ansible_date_time.iso8601 }}
+! Template version: {{ app_settings.version }}
+!
+hostname {{ inventory_hostname | upper }}
+!
+ip domain-name {{ network_config.domain }}
+{% for dns in network_config.dns_servers %}
+ip name-server {{ dns }}
+{% endfor %}
+!
+{% for vlan in network_config.vlans %}
+vlan {{ vlan.id }}
+ name {{ vlan.name | upper }}
+!
+{% endfor %}
+!
+{% if app_settings.debug_mode %}
+logging console debugging
+{% else %}
+logging console warnings
+{% endif %}
+!
+line vty 0 {{ app_settings.max_connections - 1 }}
+ exec-timeout {{ app_settings.timeout }} 0
+ transport input ssh
+!
+{% for user in users %}
+{% if user.active %}
+! User: {{ user.name | title }} ({{ user.department | title }})
+! Email: {{ user.email }}
+username {{ user.name | upper }} privilege 15
+{% endif %}
+{% endfor %}
+!
+end
+EOF
+Deliverable: templates/router-config.j2 exists and contains {% for %} / {% if %} blocks that reference network_config, app_settings, and users.
+
+Subtask 2.2: Create an Application Configuration Template
+cat > templates/app-config.j2 << 'EOF'
+# Application Configuration File
+# Generated by Ansible on {{ ansible_date_time.iso8601 }}
+# Host: {{ inventory_hostname }}
+# Environment: {{ app_settings.environment | upper }}
+
+[application]
+version = {{ app_settings.version }}
+environment = {{ app_settings.environment }}
+debug = {{ app_settings.debug_mode | lower }}
+max_connections = {{ app_settings.max_connections }}
+timeout = {{ app_settings.timeout }}
+
+[network]
+domain = {{ network_config.domain }}
+{% for dns in network_config.dns_servers %}
+dns_server_{{ loop.index }} = {{ dns }}
+{% endfor %}
+
+{% for vlan in network_config.vlans %}
+vlan_{{ vlan.name }}_id = {{ vlan.id }}
+vlan_{{ vlan.name }}_subnet = {{ vlan.subnet }}
+{% endfor %}
+
+[security]
+{% if app_settings.environment == 'production' %}
+ssl_required = true
+session_timeout = {{ app_settings.timeout * 60 }}
+{% else %}
+ssl_required = false
+session_timeout = {{ app_settings.timeout * 120 }}
+{% endif %}
+
+{% for user in users %}
+{% if user.active %}
+user_{{ user.name }}_level = {% if user.department == 'engineering' %}admin{% else %}user{% endif %}
+
+user_{{ user.name }}_email = {{ user.email }}
+{% endif %}
+{% endfor %}
+
+[summary]
+total_users = {{ users | length }}
+active_users = {{ users | selectattr('active') | list | length }}
+admin_users = {{ users | selectattr('department', 'equalto', 'engineering') | selectattr('active') | list | length }}
+total_vlans = {{ network_config.vlans | length }}
+config_generated = {{ ansible_date_time.iso8601 }}
+EOF
+Deliverable: templates/app-config.j2 exists with an [application], [network], [security], and [summary] section, using loops and conditionals to generate content from sample_data.yml.
+
+Task 3: Render Templates and Verify Output
+Subtask 3.1: Create the Master Configuration Generator Playbook
+cat > playbooks/02-master-config-generator.yml << 'EOF'
+---
+- name: Master configuration generator
+  hosts: local
+  gather_facts: true
+  vars_files:
+    - ../vars/sample_data.yml
+
+  tasks:
+    - name: Create output directories
+      file:
+        path: "{{ playbook_dir }}/../output/{{ item }}"
+        state: directory
+      loop:
+        - network-configs
+        - app-configs
+
+    - name: Generate router configuration
+      template:
+        src: ../templates/router-config.j2
+        dest: "{{ playbook_dir }}/../output/network-configs/{{ inventory_hostname }}-router.cfg"
+
+    - name: Generate application configuration
+      template:
+        src: ../templates/app-config.j2
+        dest: "{{ playbook_dir }}/../output/app-configs/{{ inventory_hostname }}-app.cfg"
+
+    - name: Display confirmation message
+      debug:
+        msg: "Configuration files generated under {{ playbook_dir }}/../output/"
+EOF
+Deliverable: playbooks/02-master-config-generator.yml is a complete, syntactically valid playbook. Confirm with:
+
+ansible-playbook --syntax-check playbooks/02-master-config-generator.yml
+Expected output: playbook: playbooks/02-master-config-generator.yml with no syntax errors reported.
+
+Subtask 3.2: Run the Playbook and Inspect Generated Files
+ansible-playbook playbooks/02-master-config-generator.yml
+Expected result: PLAY RECAP shows localhost with ok=4 changed=3 unreachable=0 failed=0.
+
+Now inspect the generated files:
+
+cat output/network-configs/localhost-router.cfg
+cat output/app-configs/localhost-app.cfg
+Subtask 3.3: Verify Correctness Against Source Data
+Confirm the rendered files match the logic defined in the templates and source variables.
+
+grep "hostname LOCALHOST" output/network-configs/localhost-router.cfg
+grep "username JOHN_DOE" output/network-configs/localhost-router.cfg
+grep -c "username" output/network-configs/localhost-router.cfg
+
+grep "environment = production" output/app-configs/localhost-app.cfg
+grep "ssl_required = true" output/app-configs/localhost-app.cfg
+grep "total_users = 3" output/app-configs/localhost-app.cfg
+grep "active_users = 2" output/app-configs/localhost-app.cfg
+grep "admin_users = 1" output/app-configs/localhost-app.cfg
+Deliverable and expected result:
+
+output/network-configs/localhost-router.cfg contains hostname LOCALHOST and exactly two username lines (JOHN_DOE and BOB_WILSON), since jane_smith has active: false and is excluded by the {% if user.active %} conditional.
+output/app-configs/localhost-app.cfg contains total_users = 3, active_users = 2, and admin_users = 1, matching the counts computed by selectattr filters over vars/sample_data.yml.
+ssl_required = true appears because app_settings.environment is production, confirming the conditional block in the template evaluated correctly.
+Expected Outcomes
+Two working Jinja2 templates (router-config.j2 and app-config.j2) that generate configuration files from a shared set of Ansible variables
+A working playbook that renders both templates to output/network-configs/ and output/app-configs/ without errors
+The ability to trace a value in the generated output back to the specific filter, loop, or conditional in the template that produced it
+Troubleshooting
+Symptom: template error while templating string: expected token 'end of print statement'. This usually means a Jinja2 expression is missing a closing }} or a filter argument has mismatched quotes. Check the exact line number reported in the error and count the curly braces on that line.
+Symptom: generated .cfg file is missing expected username or vlan lines. This indicates the {% for %} or {% if %} block closed too early or a selectattr/equalto condition does not match the actual value in vars/sample_data.yml (check for case sensitivity, such as active: true versus the string "true").
+Conclusion
+In this lab you built and rendered two Jinja2 templates in Ansible, a network device configuration and an application configuration file, both driven from a single shared variables file. You practiced core Jinja2 filters such as upper, trim, selectattr, and map, and used loops and conditionals to control what content appears in the generated output based on data values like active status and environment. By running ansible-playbook --syntax-check before execution and then using grep to confirm specific lines and counts in the rendered files, you verified that the templating logic produced exactly the output the source data implied, which is the core skill needed to debug and trust Jinja2-driven configuration generation in real Ansible projects.

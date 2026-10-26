@@ -1,0 +1,37 @@
+---
+users:
+  - name: john_doe
+    email: john.doe@company.com
+    department: engineering
+    join_date: "2023-01-15"
+    active: true
+  - name: jane_smith
+    email: jane.smith@company.com
+    department: marketing
+    join_date: "2022-11-20"
+    active: false
+  - name: bob_wilson
+    email: bob.wilson@company.com
+    department: sales
+    join_date: "2023-03-10"
+    active: true
+
+network_config:
+  domain: company.local
+  dns_servers:
+    - 8.8.8.8
+    - 8.8.4.4
+  vlans:
+    - id: 10
+      name: management
+      subnet: 192.168.10.0/24
+    - id: 20
+      name: production
+      subnet: 192.168.20.0/24
+
+app_settings:
+  version: "2.4.1"
+  environment: production
+  debug_mode: false
+  max_connections: 1000
+  timeout: 30

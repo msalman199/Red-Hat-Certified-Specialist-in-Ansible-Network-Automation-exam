@@ -1,0 +1,38 @@
+---
+- name: Demonstrate basic Jinja2 filters
+  hosts: local
+  gather_facts: false
+  vars_files:
+    - ../vars/sample_data.yml
+  vars:
+    sample_text: "  Hello World from Ansible  "
+    mixed_case: "ThIs Is MiXeD cAsE tExT"
+
+  tasks:
+    - name: Display original strings
+      debug:
+        msg:
+          - "Original text: '{{ sample_text }}'"
+          - "Mixed case: '{{ mixed_case }}'"
+
+    - name: Apply case and whitespace filters
+      debug:
+        msg:
+          - "Uppercase: {{ sample_text | upper }}"
+          - "Lowercase: {{ mixed_case | lower }}"
+          - "Title case: {{ mixed_case | title }}"
+          - "Trimmed: '{{ sample_text | trim }}'"
+          - "Replaced: {{ sample_text | replace('World', 'Universe') }}"
+          - "Length of trimmed text: {{ sample_text | trim | length }}"
+
+    - name: Chain multiple filters together
+      debug:
+        msg: "Chained: {{ sample_text | trim | upper | replace('HELLO', 'GREETINGS') }}"
+
+    - name: Extract and transform list data from users
+      debug:
+        msg:
+          - "All user names: {{ users | map(attribute='name') | list }}"
+          - "Active user names: {{ users | selectattr('active') | map(attribute='name') | list }}"
+          - "Engineering users: {{ users | selectattr('department', 'equalto', 'engineering') | map(attribute='name') | list }}"
+          - "Sorted VLAN IDs: {{ network_config.vlans | map(attribute='id') | list | sort }}"
