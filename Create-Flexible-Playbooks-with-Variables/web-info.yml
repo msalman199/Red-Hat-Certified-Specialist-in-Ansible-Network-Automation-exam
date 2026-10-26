@@ -1,0 +1,33 @@
+---
+- name: Display variable-driven web server info
+  hosts: webservers
+  vars:
+    app_name: "MyWebApp"
+    app_version: "1.0.0"
+
+  tasks:
+    - name: Show combined variable values
+      debug:
+        msg: |
+          App: {{ app_name }} v{{ app_version }}
+          Host: {{ inventory_hostname }}
+          Environment: {{ environment }}
+          HTTP Port: {{ http_port }}
+          Web User: {{ web_user }}
+          Document Root: {{ document_root }}
+          Max Connections: {{ max_connections }}
+
+    - name: Create the document root directory
+      file:
+        path: "{{ document_root }}"
+        state: directory
+        mode: '0755'
+
+    - name: Write a host-specific index file
+      copy:
+        content: |
+          Application: {{ app_name }} v{{ app_version }}
+          Environment: {{ environment }}
+          Port: {{ http_port }}
+        dest: "{{ document_root }}/{{ inventory_hostname }}.txt"
+        mode: '0644'

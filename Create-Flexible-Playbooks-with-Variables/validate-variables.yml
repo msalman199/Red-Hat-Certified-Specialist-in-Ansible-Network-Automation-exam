@@ -1,0 +1,14 @@
+---
+- name: Validate required variables per host
+  hosts: webservers
+
+  tasks:
+    - name: Ensure environment and http_port are defined and valid
+      assert:
+        that:
+          - environment is defined
+          - environment in ['staging', 'production']
+          - http_port | int > 0
+          - http_port | int < 65536
+        fail_msg: "Invalid or missing variables on {{ inventory_hostname }}"
+        success_msg: "Variables valid on {{ inventory_hostname }}"

@@ -1,0 +1,10 @@
+---
+- name: Show environment-specific deployment message
+  hosts: webservers
+  vars_files:
+    - "vars/{{ environment }}.yml"
+
+  tasks:
+    - name: Display deployment message for this host
+      debug:
+        msg: "{{ deploy_message }} (log_level={{ log_level }})"

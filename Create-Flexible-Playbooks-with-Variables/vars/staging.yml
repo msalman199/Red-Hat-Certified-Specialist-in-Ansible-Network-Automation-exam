@@ -1,0 +1,3 @@
+---
+deploy_message: "Staging deployment - verbose logging enabled"
+log_level: debug

@@ -1,0 +1,3 @@
+---
+deploy_message: "Production deployment - standard logging"
+log_level: warning

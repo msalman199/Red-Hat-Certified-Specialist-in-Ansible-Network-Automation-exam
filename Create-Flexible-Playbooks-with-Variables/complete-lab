@@ -1,0 +1,207 @@
+Lab: Create Flexible Playbooks with Variables
+Objectives
+By the end of this lab, students will be able to:
+
+Define variables at multiple levels (playbook vars, inventory vars, group_vars, host_vars)
+Use vars_files to load environment-specific configuration
+Override variables at runtime using extra_vars
+Validate required variables using the assert module
+Prerequisites
+Before starting this lab, students should have:
+
+Basic understanding of Ansible concepts (playbooks, tasks, modules)
+Familiarity with YAML syntax and structure
+Experience with Linux command line operations
+Ansible installed on the control node. If not already installed:
+sudo dnf install -y ansible-core
+ansible --version
+Lab Environment
+This lab uses a single control node with Ansible installed. Tasks run against localhost using the local connection, so no separate managed nodes or SSH setup are required. This keeps the lab fully self-contained and safe to run in any isolated practice environment.
+
+Task 1: Define and Layer Variables
+Step 1.1: Create the Working Directory and Inventory
+mkdir -p ~/lab-variables/group_vars ~/lab-variables/host_vars
+cd ~/lab-variables
+Create an inventory file with two local hosts and inventory-level variables:
+
+cat > inventory.ini << 'EOF'
+[webservers]
+web1 ansible_connection=local http_port=80
+web2 ansible_connection=local http_port=8080
+
+[webservers:vars]
+web_user=deploy
+EOF
+Step 1.2: Create Group and Host Variables
+Create a group variable file for the webservers group:
+
+cat > group_vars/webservers.yml << 'EOF'
+---
+document_root: /tmp/webapp
+max_connections: 100
+EOF
+Create host-specific variables. Both hosts use the same environment value scheme so later validation logic matches the data exactly:
+
+cat > host_vars/web1.yml << 'EOF'
+---
+environment: production
+max_connections: 500
+EOF
+cat > host_vars/web2.yml << 'EOF'
+---
+environment: staging
+max_connections: 50
+EOF
+Step 1.3: Create a Variable-Driven Playbook
+cat > web-info.yml << 'EOF'
+---
+- name: Display variable-driven web server info
+  hosts: webservers
+  vars:
+    app_name: "MyWebApp"
+    app_version: "1.0.0"
+
+  tasks:
+    - name: Show combined variable values
+      debug:
+        msg: |
+          App: {{ app_name }} v{{ app_version }}
+          Host: {{ inventory_hostname }}
+          Environment: {{ environment }}
+          HTTP Port: {{ http_port }}
+          Web User: {{ web_user }}
+          Document Root: {{ document_root }}
+          Max Connections: {{ max_connections }}
+
+    - name: Create the document root directory
+      file:
+        path: "{{ document_root }}"
+        state: directory
+        mode: '0755'
+
+    - name: Write a host-specific index file
+      copy:
+        content: |
+          Application: {{ app_name }} v{{ app_version }}
+          Environment: {{ environment }}
+          Port: {{ http_port }}
+        dest: "{{ document_root }}/{{ inventory_hostname }}.txt"
+        mode: '0644'
+EOF
+Step 1.4: Run and Verify
+ansible-playbook -i inventory.ini web-info.yml
+Expected output includes, for each host, a debug message showing the merged variables (playbook app_name/app_version, inventory http_port/web_user, group_vars document_root/default max_connections, and host_vars environment and overridden max_connections). For web1 the output shows Environment: production and Max Connections: 500; for web2 it shows Environment: staging and Max Connections: 50. The play recap shows changed=2 for both hosts on the first run (directory and file creation).
+
+Deliverable: Confirm the files were created with correct per-host content:
+
+cat /tmp/webapp/web1.txt
+cat /tmp/webapp/web2.txt
+Expected content of web1.txt:
+
+Application: MyWebApp v1.0.0
+Environment: production
+Port: 80
+Expected content of web2.txt:
+
+Application: MyWebApp v1.0.0
+Environment: staging
+Port: 8080
+Task 2: Override Variables with vars_files and extra_vars
+Step 2.1: Create Environment-Specific Variable Files
+mkdir -p vars
+
+cat > vars/staging.yml << 'EOF'
+---
+deploy_message: "Staging deployment - verbose logging enabled"
+log_level: debug
+EOF
+cat > vars/production.yml << 'EOF'
+---
+deploy_message: "Production deployment - standard logging"
+log_level: warning
+EOF
+Step 2.2: Create a Playbook that Loads vars_files by Name
+cat > deploy-message.yml << 'EOF'
+---
+- name: Show environment-specific deployment message
+  hosts: webservers
+  vars_files:
+    - "vars/{{ environment }}.yml"
+
+  tasks:
+    - name: Display deployment message for this host
+      debug:
+        msg: "{{ deploy_message }} (log_level={{ log_level }})"
+EOF
+Each host's environment variable (set in host_vars) selects which file under vars/ is loaded, so web1 loads vars/production.yml and web2 loads vars/staging.yml.
+
+ansible-playbook -i inventory.ini deploy-message.yml
+Expected output: web1 prints Production deployment - standard logging (log_level=warning) and web2 prints Staging deployment - verbose logging enabled (log_level=debug).
+
+Step 2.3: Override with extra_vars at Runtime
+Run the same playbook but force both hosts to use the staging message by overriding environment with -e:
+
+ansible-playbook -i inventory.ini deploy-message.yml -e "environment=staging"
+Expected output: Both web1 and web2 now print Staging deployment - verbose logging enabled (log_level=debug), because extra_vars has the highest precedence and overrides the host_vars value of environment for both hosts.
+
+Deliverable: Run the command above and confirm both hosts print the identical staging message, demonstrating that extra_vars overrides host_vars.
+
+Step 2.4: Validate Required Variables with assert
+Create a small validation playbook that checks each host's environment value against the actual values used in this lab (production and staging):
+
+cat > validate-variables.yml << 'EOF'
+---
+- name: Validate required variables per host
+  hosts: webservers
+
+  tasks:
+    - name: Ensure environment and http_port are defined and valid
+      assert:
+        that:
+          - environment is defined
+          - environment in ['staging', 'production']
+          - http_port | int > 0
+          - http_port | int < 65536
+        fail_msg: "Invalid or missing variables on {{ inventory_hostname }}"
+        success_msg: "Variables valid on {{ inventory_hostname }}"
+EOF
+ansible-playbook -i inventory.ini validate-variables.yml
+Expected output: Both web1 (environment=production) and web2 (environment=staging) pass the assertion, showing "Variables valid on web1" and "Variables valid on web2" in the task result, with ok=2 and no failures in the play recap.
+
+Expected Outcomes
+A working directory containing an inventory, group_vars, host_vars, and vars_files, all supplying different layers of configuration to the same playbook
+Demonstrated proof that extra_vars overrides host_vars at runtime
+A validation playbook that confirms required variables exist and hold values consistent with the actual environment data used in the lab
+Troubleshooting
+Issue 1: 'environment' is undefined error when running web-info.yml or deploy-message.yml
+
+Exact error:
+
+fatal: [web1]: FAILED! => {"msg": "'environment' is undefined"}
+Fix: Confirm the host_vars file names exactly match the inventory hostnames (host_vars/web1.yml, host_vars/web2.yml) and are valid YAML. Verify with:
+
+ansible-inventory -i inventory.ini --host web1
+Expected output includes "environment": "production" in the returned JSON.
+
+Issue 2: vars_files fails with a "file not found" error
+
+Exact error:
+
+fatal: [web1]: FAILED! => {"msg": "AnsibleUndefinedVariable: 'environment' is undefined"}
+or
+
+ERROR! vars file vars/None.yml was not found
+Fix: This happens if environment is undefined when vars_files tries to build the filename. Ensure host_vars/web1.yml and host_vars/web2.yml exist and define environment, and that you run the playbook with -i inventory.ini so host_vars are loaded.
+
+Issue 3: assert task fails with "Invalid or missing variables"
+
+Exact error:
+
+fatal: [web1]: FAILED! => {"msg": "Invalid or missing variables on web1"}
+Fix: Check the actual value with a debug task:
+
+ansible -i inventory.ini web1 -m debug -a "var=environment"
+Confirm the returned value is exactly production or staging (no typos, no extra whitespace) and that it matches one of the values listed in the assert module's that condition in validate-variables.yml.
+
+Conclusion
+In this lab, students built a small but complete Ansible variable hierarchy, combining playbook-level vars, inventory variables, group_vars, host_vars, and external vars_files into a single set of playbooks, and confirmed how each layer contributes to the final value seen by a task. Students then used extra_vars on the command line to override those layers at runtime and verified the override took effect on every host, and used the assert module to validate that required variables were defined and held values consistent with the actual configuration data in host_vars. The key takeaway is Ansible's variable precedence: command-line extra_vars always wins, followed by more specific sources like host_vars and vars_files, down to general defaults set in group_vars or the playbook itself. When designing real automation, keep environment-specific values in host_vars/group_vars or dedicated vars_files, reserve extra_vars for deliberate runtime overrides, and always validate critical variables with assert before they are used in tasks that change system state.
