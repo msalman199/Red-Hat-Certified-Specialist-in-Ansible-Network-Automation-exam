@@ -1,0 +1,21 @@
+# playbooks/cisco_ios_ios_facts.yml
+---
+- name: Gather Cisco IOS facts
+  cisco.ios.ios_facts:
+    gather_subset:
+      - all
+  when: ansible_network_os == 'cisco.ios.ios'
+# playbooks/arista_eos_eos_facts.yml
+---
+- name: Gather Arista EOS facts
+  arista.eos.eos_facts:
+    gather_subset:
+      - all
+  when: ansible_network_os == 'arista.eos.eos'
+# playbooks/junipernetworks_junos_junos_facts.yml
+---
+- name: Gather Juniper JunOS facts
+  junipernetworks.junos.junos_facts:
+    gather_subset:
+      - all
+  when: ansible_network_os == 'junipernetworks.junos.junos'

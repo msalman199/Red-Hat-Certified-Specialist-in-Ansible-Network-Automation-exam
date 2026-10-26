@@ -1,0 +1,37 @@
+# playbooks/filtered_facts_analysis.yml
+---
+- name: Advanced Facts Filtering and Analysis
+  hosts: all
+  gather_facts: no
+  connection: local
+  
+  tasks:
+    - name: Gather facts from all devices
+      include_tasks: "{{ ansible_network_os | replace('.', '_') }}_facts.yml"
+    
+    - name: Analyze interface utilization
+      set_fact:
+        active_interfaces: "{{ ansible_net_interfaces | dict2items | selectattr('value.operstatus', 'equalto', 'up') | list }}"
+        inactive_interfaces: "{{ ansible_net_interfaces | dict2items | selectattr('value.operstatus', 'equalto', 'down') | list }}"
+      when: ansible_net_interfaces is defined
+    
+    - name: Display interface analysis
+      debug:
+        msg: |
+          Device: {{ inventory_hostname }}
+          Total Interfaces: {{ ansible_net_interfaces | length if ansible_net_interfaces is defined else 0 }}
+          Active Interfaces: {{ active_interfaces | length if active_interfaces is defined else 0 }}
+          Inactive Interfaces: {{ inactive_interfaces | length if inactive_interfaces is defined else 0 }}
+    
+    - name: Identify high-speed interfaces
+      set_fact:
+        high_speed_interfaces: "{{ ansible_net_interfaces | dict2items | selectattr('value.bandwidth', 'defined') | selectattr('value.bandwidth', '>=', 1000000) | list }}"
+      when: ansible_net_interfaces is defined
+    
+    - name: Display high-speed interface information
+      debug:
+        msg: |
+          High-Speed Interface: {{ item.key }}
+          Speed: {{ item.value.bandwidth }}
+          Status: {{ item.value.operstatus }}
+      loop: "{{ high_speed_interfaces | default([]) }}"

@@ -1,0 +1,61 @@
+<!-- templates/device_report.j2 -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Network Device Report - {{ inventory_hostname }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { background-color: #f0f0f0; padding: 10px; border-radius: 5px; }
+        .section { margin: 20px 0; }
+        .interface-table { border-collapse: collapse; width: 100%; }
+        .interface-table th, .interface-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .interface-table th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Network Device Report</h1>
+        <p><strong>Device:</strong> {{ inventory_hostname }}</p>
+        <p><strong>Hostname:</strong> {{ ansible_net_hostname | default('N/A') }}</p>
+        <p><strong>OS Version:</strong> {{ ansible_net_version | default('N/A') }}</p>
+        <p><strong>Model:</strong> {{ ansible_net_model | default('N/A') }}</p>
+        <p><strong>Serial Number:</strong> {{ ansible_net_serialnum | default('N/A') }}</p>
+        <p><strong>Report Generated:</strong> {{ ansible_date_time.iso8601 }}</p>
+    </div>
+    
+    <div class="section">
+        <h2>Interface Information</h2>
+        {% if ansible_net_interfaces is defined %}
+        <table class="interface-table">
+            <tr>
+                <th>Interface</th>
+                <th>Description</th>
+                <th>IP Address</th>
+                <th>Status</th>
+                <th>Speed</th>
+            </tr>
+            {% for interface, details in ansible_net_interfaces.items() %}
+            <tr>
+                <td>{{ interface }}</td>
+                <td>{{ details.description | default('No description') }}</td>
+                <td>{{ details.ipv4[0].address | default('No IP') if details.ipv4 is defined else 'No IP' }}</td>
+                <td>{{ details.operstatus | default('Unknown') }}</td>
+                <td>{{ details.bandwidth | default('Unknown') }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+        <p>No interface information available</p>
+        {% endif %}
+    </div>
+    
+    <div class="section">
+        <h2>System Information</h2>
+        <ul>
+            <li><strong>Uptime:</strong> {{ ansible_net_uptime | default('N/A') }}</li>
+            <li><strong>Memory:</strong> {{ ansible_net_memtotal_mb | default('N/A') }} MB</li>
+            <li><strong>Free Memory:</strong> {{ ansible_net_memfree_mb | default('N/A') }} MB</li>
+        </ul>
+    </div>
+</body>
+</html>

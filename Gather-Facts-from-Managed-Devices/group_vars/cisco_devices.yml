@@ -1,0 +1,17 @@
+# group_vars/cisco_devices.yml
+---
+ansible_connection: ansible.netcommon.network_cli
+ansible_network_os: cisco.ios.ios
+ansible_become: yes
+ansible_become_method: enable
+ansible_become_password: enable123
+# group_vars/arista_devices.yml
+---
+ansible_connection: ansible.netcommon.network_cli
+ansible_network_os: arista.eos.eos
+ansible_become: yes
+ansible_become_method: enable
+# group_vars/juniper_devices.yml
+---
+ansible_connection: ansible.netcommon.netconf
+ansible_network_os: junipernetworks.junos.junos

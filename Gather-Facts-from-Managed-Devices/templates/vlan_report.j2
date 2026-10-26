@@ -1,0 +1,13 @@
+# templates/vlan_report.j2
+Device: {{ inventory_hostname }}
+Timestamp: {{ ansible_date_time.iso8601 }}
+Network OS: {{ ansible_network_os }}
+
+VLAN Configuration:
+==================
+{% for vlan in vlans %}
+VLAN ID: {{ vlan.vlan_id }}
+Name: {{ vlan.name | default('Unnamed') }}
+State: {{ vlan.state | default('active') }}
+---
+{% endfor %}

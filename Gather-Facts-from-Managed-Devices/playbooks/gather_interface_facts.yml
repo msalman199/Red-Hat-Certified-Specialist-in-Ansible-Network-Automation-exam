@@ -1,0 +1,55 @@
+# playbooks/gather_interface_facts.yml
+---
+- name: Gather Interface Facts from Network Devices
+  hosts: all
+  gather_facts: no
+  connection: local
+  
+  tasks:
+    - name: Gather interface facts from Cisco devices
+      cisco.ios.ios_facts:
+        gather_subset:
+          - interfaces
+      when: ansible_network_os == 'cisco.ios.ios'
+    
+    - name: Gather interface facts from Arista devices
+      arista.eos.eos_facts:
+        gather_subset:
+          - interfaces
+      when: ansible_network_os == 'arista.eos.eos'
+    
+    - name: Gather interface facts from Juniper devices
+      junipernetworks.junos.junos_facts:
+        gather_subset:
+          - interfaces
+      when: ansible_network_os == 'junipernetworks.junos.junos'
+    
+    - name: Display interface information
+      debug:
+        msg: |
+          Device: {{ inventory_hostname }}
+          Interface: {{ item.key }}
+          Description: {{ item.value.description | default('No description') }}
+          IP Address: {{ item.value.ipv4[0].address | default('No IP') if item.value.ipv4 is defined else 'No IP' }}
+          Status: {{ item.value.operstatus | default('Unknown') }}
+          Speed: {{ item.value.bandwidth | default('Unknown') }}
+      loop: "{{ ansible_net_interfaces | dict2items }}"
+      when: ansible_net_interfaces is defined
+    
+    - name: Save interface facts to file
+      copy:
+        content: |
+          Device: {{ inventory_hostname }}
+          Timestamp: {{ ansible_date_time.iso8601 }}
+          
+          Interface Details:
+          {% for interface, details in ansible_net_interfaces.items() %}
+          - Interface: {{ interface }}
+            Description: {{ details.description | default('No description') }}
+            IP Address: {{ details.ipv4[0].address | default('No IP') if details.ipv4 is defined else 'No IP' }}
+            Status: {{ details.operstatus | default('Unknown') }}
+            Speed: {{ details.bandwidth | default('Unknown') }}
+            MAC Address: {{ details.macaddress | default('Unknown') }}
+          {% endfor %}
+        dest: "./output/{{ inventory_hostname }}_interfaces.txt"
+      when: ansible_net_interfaces is defined

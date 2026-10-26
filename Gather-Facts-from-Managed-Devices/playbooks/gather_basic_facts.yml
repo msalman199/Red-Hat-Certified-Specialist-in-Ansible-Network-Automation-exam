@@ -1,0 +1,37 @@
+# playbooks/gather_basic_facts.yml
+---
+- name: Gather Basic Facts from Network Devices
+  hosts: all
+  gather_facts: no
+  connection: local
+  
+  tasks:
+    - name: Gather facts from Cisco IOS devices
+      cisco.ios.ios_facts:
+        gather_subset:
+          - all
+      when: ansible_network_os == 'cisco.ios.ios'
+      register: cisco_facts
+    
+    - name: Gather facts from Arista EOS devices
+      arista.eos.eos_facts:
+        gather_subset:
+          - all
+      when: ansible_network_os == 'arista.eos.eos'
+      register: arista_facts
+    
+    - name: Gather facts from Juniper JunOS devices
+      junipernetworks.junos.junos_facts:
+        gather_subset:
+          - all
+      when: ansible_network_os == 'junipernetworks.junos.junos'
+      register: juniper_facts
+    
+    - name: Display device hostname and version
+      debug:
+        msg: |
+          Device: {{ inventory_hostname }}
+          Hostname: {{ ansible_net_hostname | default('N/A') }}
+          OS Version: {{ ansible_net_version | default('N/A') }}
+          Model: {{ ansible_net_model | default('N/A') }}
+          Serial Number: {{ ansible_net_serialnum | default('N/A') }}

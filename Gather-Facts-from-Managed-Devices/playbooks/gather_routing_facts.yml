@@ -1,0 +1,51 @@
+# playbooks/gather_routing_facts.yml
+---
+- name: Gather Routing Facts from Network Devices
+  hosts: all
+  gather_facts: no
+  connection: local
+  
+  tasks:
+    - name: Gather routing facts from Cisco devices
+      cisco.ios.ios_command:
+        commands:
+          - show ip route
+          - show ipv6 route
+      when: ansible_network_os == 'cisco.ios.ios'
+      register: cisco_routes
+    
+    - name: Gather routing facts from Arista devices
+      arista.eos.eos_command:
+        commands:
+          - show ip route
+          - show ipv6 route
+      when: ansible_network_os == 'arista.eos.eos'
+      register: arista_routes
+    
+    - name: Gather routing facts from Juniper devices
+      junipernetworks.junos.junos_command:
+        commands:
+          - show route
+          - show route inet6
+      when: ansible_network_os == 'junipernetworks.junos.junos'
+      register: juniper_routes
+    
+    - name: Display routing information
+      debug:
+        var: item
+      loop: "{{ cisco_routes.stdout | default(arista_routes.stdout) | default(juniper_routes.stdout) | default([]) }}"
+      when: item is defined
+    
+    - name: Save routing information to file
+      copy:
+        content: |
+          Device: {{ inventory_hostname }}
+          Timestamp: {{ ansible_date_time.iso8601 }}
+          Network OS: {{ ansible_network_os }}
+          
+          IPv4 Routing Table:
+          {{ cisco_routes.stdout[0] | default(arista_routes.stdout[0]) | default(juniper_routes.stdout[0]) | default('No IPv4 routes found') }}
+          
+          IPv6 Routing Table:
+          {{ cisco_routes.stdout[1] | default(arista_routes.stdout[1]) | default(juniper_routes.stdout[1]) | default('No IPv6 routes found') }}
+        dest: "./output/{{ inventory_hostname }}_routes.txt"

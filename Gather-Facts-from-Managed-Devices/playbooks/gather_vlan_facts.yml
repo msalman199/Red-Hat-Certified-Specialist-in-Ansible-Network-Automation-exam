@@ -1,0 +1,46 @@
+# playbooks/gather_vlan_facts.yml
+---
+- name: Gather VLAN Facts from Network Devices
+  hosts: cisco_devices:arista_devices
+  gather_facts: no
+  connection: local
+  
+  tasks:
+    - name: Gather VLAN information from Cisco devices
+      cisco.ios.ios_vlans:
+        state: gathered
+      when: ansible_network_os == 'cisco.ios.ios'
+      register: cisco_vlans
+    
+    - name: Gather VLAN information from Arista devices
+      arista.eos.eos_vlans:
+        state: gathered
+      when: ansible_network_os == 'arista.eos.eos'
+      register: arista_vlans
+    
+    - name: Display VLAN information for Cisco devices
+      debug:
+        msg: |
+          Device: {{ inventory_hostname }}
+          VLAN ID: {{ item.vlan_id }}
+          Name: {{ item.name | default('Unnamed') }}
+          State: {{ item.state | default('active') }}
+      loop: "{{ cisco_vlans.gathered | default([]) }}"
+      when: ansible_network_os == 'cisco.ios.ios' and cisco_vlans.gathered is defined
+    
+    - name: Display VLAN information for Arista devices
+      debug:
+        msg: |
+          Device: {{ inventory_hostname }}
+          VLAN ID: {{ item.vlan_id }}
+          Name: {{ item.name | default('Unnamed') }}
+          State: {{ item.state | default('active') }}
+      loop: "{{ arista_vlans.gathered | default([]) }}"
+      when: ansible_network_os == 'arista.eos.eos' and arista_vlans.gathered is defined
+    
+    - name: Save VLAN information to file
+      template:
+        src: vlan_report.j2
+        dest: "./output/{{ inventory_hostname }}_vlans.txt"
+      vars:
+        vlans: "{{ cisco_vlans.gathered | default(arista_vlans.gathered) | default([]) }}"

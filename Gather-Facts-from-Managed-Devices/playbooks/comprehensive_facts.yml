@@ -1,0 +1,43 @@
+# playbooks/comprehensive_facts.yml
+---
+- name: Comprehensive Network Device Facts Collection
+  hosts: all
+  gather_facts: no
+  connection: local
+  
+  vars:
+    timestamp: "{{ ansible_date_time.epoch }}"
+    report_dir: "./reports/{{ timestamp }}"
+  
+  tasks:
+    - name: Create report directory
+      file:
+        path: "{{ report_dir }}"
+        state: directory
+      delegate_to: localhost
+      run_once: true
+    
+    - name: Gather all facts from Cisco devices
+      cisco.ios.ios_facts:
+        gather_subset:
+          - all
+      when: ansible_network_os == 'cisco.ios.ios'
+    
+    - name: Gather all facts from Arista devices
+      arista.eos.eos_facts:
+        gather_subset:
+          - all
+      when: ansible_network_os == 'arista.eos.eos'
+    
+    - name: Gather all facts from Juniper devices
+      junipernetworks.junos.junos_facts:
+        gather_subset:
+          - all
+      when: ansible_network_os == 'junipernetworks.junos.junos'
+    
+    - name: Generate comprehensive device report
+      template:
+        src: device_report.j2
+        dest: "{{ report_dir }}/{{ inventory_hostname }}_comprehensive_report.html"
+      vars:
+        device_facts: "{{ ansible_facts }}"
