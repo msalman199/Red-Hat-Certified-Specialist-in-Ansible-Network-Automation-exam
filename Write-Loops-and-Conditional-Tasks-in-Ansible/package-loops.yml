@@ -1,0 +1,47 @@
+---
+- name: Install Multiple Packages Using Loops
+  hosts: webservers
+  become: yes
+  vars:
+    web_packages:
+      - curl
+      - wget
+      - unzip
+    dev_packages:
+      - git
+      - vim
+      - htop
+      - tree
+
+  tasks:
+
+    - name: Update package cache
+      apt:
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Install web utility packages
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ web_packages }}"
+      when: ansible_os_family == "Debian"
+
+    - name: Install development packages
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ dev_packages }}"
+      when: ansible_os_family == "Debian"
+
+    - name: Verify installed packages using dpkg-query
+      command: "dpkg-query -W -f='${Status}' {{ item }}"
+      loop: "{{ web_packages + dev_packages }}"
+      register: package_status
+      changed_when: false
+      failed_when: false
+
+    - name: Display package installation status
+      debug:
+        msg: "Package {{ item.item }} status: {{ 'INSTALLED' if 'install ok installed' in item.stdout else 'NOT FOUND' }}"
+      loop: "{{ package_status.results }}"

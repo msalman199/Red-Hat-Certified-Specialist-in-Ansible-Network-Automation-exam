@@ -1,0 +1,59 @@
+---
+- name: Deployment Readiness Summary
+  hosts: webservers
+  become: yes
+  vars:
+    web_apps:
+      - name: "frontend"
+        port: 3000
+        min_memory_mb: 256
+      - name: "api"
+        port: 8080
+        min_memory_mb: 256
+      - name: "admin"
+        port: 9000
+        min_memory_mb: 128
+
+    monitoring_enabled: true
+    ssl_enabled: false
+    backup_enabled: true
+    backup_paths:
+      - "/var/www"
+      - "/etc/nginx"
+
+  tasks:
+
+    - name: Gather system facts
+      setup:
+
+    - name: Create application placeholder directories
+      file:
+        path: "/tmp/apps/{{ item.name }}"
+        state: directory
+        mode: '0755'
+      loop: "{{ web_apps }}"
+      when: ansible_memtotal_mb >= item.min_memory_mb
+
+    - name: Report applications that do not meet memory requirements
+      debug:
+        msg: "WARNING: {{ item.name }} requires {{ item.min_memory_mb }}MB but system only has {{ ansible_memtotal_mb }}MB"
+      loop: "{{ web_apps }}"
+      when: ansible_memtotal_mb < item.min_memory_mb
+
+    - name: Create backup directories when backups are enabled
+      file:
+        path: "/tmp/backup/{{ item | basename }}"
+        state: directory
+        mode: '0700'
+      loop: "{{ backup_paths }}"
+      when: backup_enabled | bool
+
+    - name: Display deployment summary
+      debug:
+        msg: |
+          === Deployment Summary ===
+          Applications evaluated: {{ web_apps | length }}
+          Applications ready: {{ web_apps | selectattr('min_memory_mb', 'le', ansible_memtotal_mb) | list | length }}
+          Backup paths configured: {{ backup_paths | length if backup_enabled else 0 }}
+          SSL: {{ "Enabled" if ssl_enabled else "Disabled" }}
+          Monitoring: {{ "Enabled" if monitoring_enabled else "Disabled" }}

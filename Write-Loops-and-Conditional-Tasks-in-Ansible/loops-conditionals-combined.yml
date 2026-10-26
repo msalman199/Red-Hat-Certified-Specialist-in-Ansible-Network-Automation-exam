@@ -1,0 +1,58 @@
+---
+- name: Combined Loops and Conditionals with Explicit Error Handling
+  hosts: webservers
+  become: yes
+  vars:
+    packages_to_check:
+      - name: "curl"
+        critical: true
+      - name: "wget"
+        critical: true
+      - name: "nonexistent-demo-package"
+        critical: false
+      - name: "vim"
+        critical: true
+
+  tasks:
+
+    - name: Gather system facts
+      setup:
+
+    - name: Check package availability in apt cache before installing
+      command: "apt-cache show {{ item.name }}"
+      loop: "{{ packages_to_check }}"
+      register: cache_check
+      changed_when: false
+      # A non-zero return code here means the package does not exist in the
+      # cache. That is an expected, valid outcome for the deliberately fake
+      # package, so we record it explicitly instead of masking it.
+      failed_when: false
+
+    - name: Install packages that exist in the apt cache
+      apt:
+        name: "{{ item.item.name }}"
+        state: present
+      loop: "{{ cache_check.results }}"
+      when: item.rc == 0
+
+    - name: Report packages that could not be found
+      debug:
+        msg: "SKIPPED: {{ item.item.name }} was not found in the apt cache (critical={{ item.item.critical }})"
+      loop: "{{ cache_check.results }}"
+      when: item.rc != 0
+
+    - name: Fail the play if a critical package was unavailable
+      fail:
+        msg: "Critical package {{ item.item.name }} is missing and cannot be installed."
+      loop: "{{ cache_check.results }}"
+      when:
+        - item.rc != 0
+        - item.item.critical | bool
+
+    - name: Display final package status summary
+      debug:
+        msg: |
+          Package: {{ item.item.name }}
+          Critical: {{ item.item.critical }}
+          Found in cache: {{ item.rc == 0 }}
+      loop: "{{ cache_check.results }}"

@@ -1,0 +1,35 @@
+---
+- name: Basic Loops Demonstration
+  hosts: webservers
+  become: yes
+  tasks:
+
+    - name: Create multiple directories using loop
+      file:
+        path: "/tmp/{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - app1
+        - app2
+        - app3
+        - logs
+        - config
+
+    - name: Create multiple files with different content and modes
+      copy:
+        content: "This is the {{ item.name }} file.\n"
+        dest: "/tmp/{{ item.name }}.txt"
+        mode: "{{ item.mode }}"
+      loop:
+        - { name: "readme", mode: "0644" }
+        - { name: "script", mode: "0755" }
+        - { name: "config", mode: "0600" }
+
+    - name: Display loop results
+      debug:
+        msg: "Created file: {{ item.name }} with mode {{ item.mode }}"
+      loop:
+        - { name: "readme", mode: "0644" }
+        - { name: "script", mode: "0755" }
+        - { name: "config", mode: "0600" }

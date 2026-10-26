@@ -1,0 +1,72 @@
+---
+- name: Basic Conditionals Demonstration
+  hosts: webservers
+  become: yes
+  vars:
+    app_environment: "production"
+    enable_monitoring: true
+    server_role: "webserver"
+
+  tasks:
+
+    - name: Gather system facts
+      setup:
+
+    - name: Install nginx only on Ubuntu systems
+      apt:
+        name: nginx
+        state: present
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Install httpd on RedHat family systems
+      yum:
+        name: httpd
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Write production configuration
+      copy:
+        content: |
+          # Production Configuration
+          server_name = {{ ansible_hostname }}
+          environment = {{ app_environment }}
+          debug = false
+        dest: /tmp/app.conf
+      when: app_environment == "production"
+
+    - name: Write development configuration
+      copy:
+        content: |
+          # Development Configuration
+          server_name = {{ ansible_hostname }}
+          environment = {{ app_environment }}
+          debug = true
+        dest: /tmp/app.conf
+      when: app_environment == "development"
+
+    - name: Install monitoring tools when enabled
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - htop
+        - iotop
+        - nethogs
+      when:
+        - enable_monitoring | bool
+        - ansible_os_family == "Debian"
+
+    - name: Create web directory for web servers
+      file:
+        path: /var/www/html/app
+        state: directory
+        mode: '0755'
+      when: server_role == "webserver"
+
+    - name: Display conditional results
+      debug:
+        msg: |
+          System: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Environment: {{ app_environment }}
+          Monitoring: {{ enable_monitoring }}
+          Role: {{ server_role }}

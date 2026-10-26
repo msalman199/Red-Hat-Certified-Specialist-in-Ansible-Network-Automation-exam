@@ -1,0 +1,445 @@
+Lab: Write Loops and Conditional Tasks in Ansible
+Objectives
+By the end of this lab, you will be able to:
+
+Implement loop constructs in Ansible playbooks to manage repetitive tasks
+Apply when conditionals to control task execution based on system facts and variables
+Combine loops and conditionals to build efficient, real-world automation
+Use register and failed_when/failed_when: false to handle errors explicitly instead of masking them
+Debug loop and conditional logic using the debug module
+Prerequisites
+Before starting this lab, you should have:
+
+Basic understanding of Ansible fundamentals (inventory, playbooks, modules)
+Knowledge of YAML syntax
+Familiarity with Linux command line operations
+Access to a control node and at least one managed node with SSH connectivity
+Install Ansible on the control node if it is not already present:
+
+sudo apt update && sudo apt install -y ansible
+# or on RHEL/CentOS:
+# sudo yum install -y ansible
+ansible --version
+This lab assumes the managed node runs Ubuntu (Debian family). All package tasks target apt.
+
+Lab Environment
+Ready-to-Use Cloud Machines: This lab is intended for a pre-configured, isolated practice environment (for example, an Al Nafi cloud machine or your own disposable VM pair). Do not run these playbooks against production infrastructure.
+
+Your lab environment includes:
+
+Control Node: A Linux system with Ansible installed
+Managed Node: An Ubuntu 20.04+ system reachable over SSH
+SSH key-based access configured between the two nodes
+Task 1: Set Up the Lab and Implement Basic Loops
+Subtask 1.1: Set Up Lab Directory Structure
+Connect to your control node and create the lab directory:
+mkdir -p ~/ansible-loops-conditionals
+cd ~/ansible-loops-conditionals
+Create the inventory file (replace <MANAGED_NODE_IP> with your managed node's address):
+cat > inventory << 'EOF'
+[webservers]
+managed-node ansible_host=<MANAGED_NODE_IP> ansible_user=ubuntu
+
+[all:vars]
+ansible_ssh_private_key_file=~/.ssh/id_rsa
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+EOF
+Test connectivity:
+ansible all -i inventory -m ping
+Deliverable: The ping command returns "ping": "pong" with a SUCCESS status for managed-node. If this fails, resolve SSH connectivity before continuing.
+
+Subtask 1.2: Basic Loop Implementation
+Create a basic loop playbook:
+cat > basic-loops.yml << 'EOF'
+---
+- name: Basic Loops Demonstration
+  hosts: webservers
+  become: yes
+  tasks:
+
+    - name: Create multiple directories using loop
+      file:
+        path: "/tmp/{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - app1
+        - app2
+        - app3
+        - logs
+        - config
+
+    - name: Create multiple files with different content and modes
+      copy:
+        content: "This is the {{ item.name }} file.\n"
+        dest: "/tmp/{{ item.name }}.txt"
+        mode: "{{ item.mode }}"
+      loop:
+        - { name: "readme", mode: "0644" }
+        - { name: "script", mode: "0755" }
+        - { name: "config", mode: "0600" }
+
+    - name: Display loop results
+      debug:
+        msg: "Created file: {{ item.name }} with mode {{ item.mode }}"
+      loop:
+        - { name: "readme", mode: "0644" }
+        - { name: "script", mode: "0755" }
+        - { name: "config", mode: "0600" }
+EOF
+Execute the playbook:
+ansible-playbook -i inventory basic-loops.yml
+Verify the results on the managed node:
+ansible webservers -i inventory -m shell -a "ls -la /tmp/*.txt"
+ansible webservers -i inventory -m shell -a "ls -ld /tmp/app1 /tmp/app2 /tmp/app3"
+Deliverable: The playbook run shows changed for the directory and file creation tasks, and the debug task prints three messages, one per file, showing the correct mode for each. The ls verification commands confirm the files and directories exist with the expected permissions (-rw-r--r-- for readme, -rwxr-xr-x for script, -rw------- for config).
+
+Subtask 1.3: Installing Multiple Packages with Loops
+Create a package installation playbook:
+cat > package-loops.yml << 'EOF'
+---
+- name: Install Multiple Packages Using Loops
+  hosts: webservers
+  become: yes
+  vars:
+    web_packages:
+      - curl
+      - wget
+      - unzip
+    dev_packages:
+      - git
+      - vim
+      - htop
+      - tree
+
+  tasks:
+
+    - name: Update package cache
+      apt:
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Install web utility packages
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ web_packages }}"
+      when: ansible_os_family == "Debian"
+
+    - name: Install development packages
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ dev_packages }}"
+      when: ansible_os_family == "Debian"
+
+    - name: Verify installed packages using dpkg-query
+      command: "dpkg-query -W -f='${Status}' {{ item }}"
+      loop: "{{ web_packages + dev_packages }}"
+      register: package_status
+      changed_when: false
+      failed_when: false
+
+    - name: Display package installation status
+      debug:
+        msg: "Package {{ item.item }} status: {{ 'INSTALLED' if 'install ok installed' in item.stdout else 'NOT FOUND' }}"
+      loop: "{{ package_status.results }}"
+EOF
+Run the playbook:
+ansible-playbook -i inventory package-loops.yml
+Deliverable: Every package in web_packages and dev_packages reports INSTALLED in the final debug output. Because failed_when: false is used explicitly on the verification task (rather than a blanket ignore_errors), a package that fails to query will show as NOT FOUND without hiding real installation failures earlier in the play.
+
+Task 2: Implement Conditional Tasks
+Subtask 2.1: Basic Conditionals
+Create a basic conditionals playbook:
+cat > basic-conditionals.yml << 'EOF'
+---
+- name: Basic Conditionals Demonstration
+  hosts: webservers
+  become: yes
+  vars:
+    app_environment: "production"
+    enable_monitoring: true
+    server_role: "webserver"
+
+  tasks:
+
+    - name: Gather system facts
+      setup:
+
+    - name: Install nginx only on Ubuntu systems
+      apt:
+        name: nginx
+        state: present
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Install httpd on RedHat family systems
+      yum:
+        name: httpd
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Write production configuration
+      copy:
+        content: |
+          # Production Configuration
+          server_name = {{ ansible_hostname }}
+          environment = {{ app_environment }}
+          debug = false
+        dest: /tmp/app.conf
+      when: app_environment == "production"
+
+    - name: Write development configuration
+      copy:
+        content: |
+          # Development Configuration
+          server_name = {{ ansible_hostname }}
+          environment = {{ app_environment }}
+          debug = true
+        dest: /tmp/app.conf
+      when: app_environment == "development"
+
+    - name: Install monitoring tools when enabled
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - htop
+        - iotop
+        - nethogs
+      when:
+        - enable_monitoring | bool
+        - ansible_os_family == "Debian"
+
+    - name: Create web directory for web servers
+      file:
+        path: /var/www/html/app
+        state: directory
+        mode: '0755'
+      when: server_role == "webserver"
+
+    - name: Display conditional results
+      debug:
+        msg: |
+          System: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Environment: {{ app_environment }}
+          Monitoring: {{ enable_monitoring }}
+          Role: {{ server_role }}
+EOF
+Execute the playbook:
+ansible-playbook -i inventory basic-conditionals.yml
+Deliverable: On an Ubuntu managed node, the nginx task shows changed while the httpd task shows skipping. /tmp/app.conf is created with debug = false since app_environment is production. The final debug message prints the correct OS, environment, monitoring flag, and role.
+
+Subtask 2.2: Advanced Conditionals with Multiple Criteria
+Create an advanced conditionals playbook:
+cat > advanced-conditionals.yml << 'EOF'
+---
+- name: Advanced Conditionals with Multiple Criteria
+  hosts: webservers
+  become: yes
+  vars:
+    min_memory_gb: 1
+    required_disk_space_gb: 5
+    supported_os_versions:
+      - "18.04"
+      - "20.04"
+      - "22.04"
+
+  tasks:
+
+    - name: Gather system facts
+      setup:
+
+    - name: Report memory size
+      debug:
+        msg: "System has {{ (ansible_memtotal_mb / 1024) | round(1) }}GB RAM"
+
+    - name: Install memory-aware packages when requirements are met
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - nodejs
+        - npm
+      when:
+        - (ansible_memtotal_mb / 1024) >= min_memory_gb
+        - ansible_distribution == "Ubuntu"
+        - ansible_distribution_version in supported_os_versions
+
+    - name: Check available disk space on root filesystem
+      shell: "set -o pipefail && df -BG / | awk 'NR==2 {print $4}' | tr -d 'G'"
+      args:
+        executable: /bin/bash
+      register: available_space
+      changed_when: false
+
+    - name: Create backup directory only if enough disk space is available
+      file:
+        path: /tmp/backup
+        state: directory
+        mode: '0755'
+      when: available_space.stdout | int >= required_disk_space_gb
+
+    - name: Display system compatibility report
+      debug:
+        msg: |
+          === System Compatibility Report ===
+          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Memory: {{ (ansible_memtotal_mb / 1024) | round(1) }}GB (Required: {{ min_memory_gb }}GB)
+          Available Disk: {{ available_space.stdout }}GB (Required: {{ required_disk_space_gb }}GB)
+          OS Supported: {{ ansible_distribution_version in supported_os_versions }}
+          Memory OK: {{ (ansible_memtotal_mb / 1024) >= min_memory_gb }}
+          Disk OK: {{ available_space.stdout | int >= required_disk_space_gb }}
+EOF
+Run the playbook:
+ansible-playbook -i inventory advanced-conditionals.yml
+Deliverable: The compatibility report in the final debug task shows True for OS Supported, Memory OK, and Disk OK on a standard Ubuntu 20.04 VM with at least 1GB RAM and 5GB free disk space. The /tmp/backup directory is created only when the disk check passes.
+
+Task 3: Combine Loops and Conditionals with Explicit Error Handling
+Subtask 3.1: Package Installation with Explicit Prerequisite Checks
+Rather than using a blanket ignore_errors: yes (which hides real failures), this task checks prerequisites explicitly and uses failed_when: false only where a non-zero result is an expected, valid outcome.
+
+Create the combined playbook:
+cat > loops-conditionals-combined.yml << 'EOF'
+---
+- name: Combined Loops and Conditionals with Explicit Error Handling
+  hosts: webservers
+  become: yes
+  vars:
+    packages_to_check:
+      - name: "curl"
+        critical: true
+      - name: "wget"
+        critical: true
+      - name: "nonexistent-demo-package"
+        critical: false
+      - name: "vim"
+        critical: true
+
+  tasks:
+
+    - name: Gather system facts
+      setup:
+
+    - name: Check package availability in apt cache before installing
+      command: "apt-cache show {{ item.name }}"
+      loop: "{{ packages_to_check }}"
+      register: cache_check
+      changed_when: false
+      # A non-zero return code here means the package does not exist in the
+      # cache. That is an expected, valid outcome for the deliberately fake
+      # package, so we record it explicitly instead of masking it.
+      failed_when: false
+
+    - name: Install packages that exist in the apt cache
+      apt:
+        name: "{{ item.item.name }}"
+        state: present
+      loop: "{{ cache_check.results }}"
+      when: item.rc == 0
+
+    - name: Report packages that could not be found
+      debug:
+        msg: "SKIPPED: {{ item.item.name }} was not found in the apt cache (critical={{ item.item.critical }})"
+      loop: "{{ cache_check.results }}"
+      when: item.rc != 0
+
+    - name: Fail the play if a critical package was unavailable
+      fail:
+        msg: "Critical package {{ item.item.name }} is missing and cannot be installed."
+      loop: "{{ cache_check.results }}"
+      when:
+        - item.rc != 0
+        - item.item.critical | bool
+
+    - name: Display final package status summary
+      debug:
+        msg: |
+          Package: {{ item.item.name }}
+          Critical: {{ item.item.critical }}
+          Found in cache: {{ item.rc == 0 }}
+      loop: "{{ cache_check.results }}"
+EOF
+Run the playbook:
+ansible-playbook -i inventory loops-conditionals-combined.yml
+Deliverable: The play completes successfully. curl, wget, and vim install normally, nonexistent-demo-package is reported as SKIPPED with a clear reason, and because it is marked critical: false, the play does not fail. Every use of failed_when: false is paired with a comment explaining exactly which non-zero result is expected and why, rather than a blanket ignore_errors: yes.
+
+Subtask 3.2: Deployment Summary with Loops Over Multiple Facts
+Create a deployment summary playbook that loops over application definitions and reports readiness using conditionals:
+cat > deployment-summary.yml << 'EOF'
+---
+- name: Deployment Readiness Summary
+  hosts: webservers
+  become: yes
+  vars:
+    web_apps:
+      - name: "frontend"
+        port: 3000
+        min_memory_mb: 256
+      - name: "api"
+        port: 8080
+        min_memory_mb: 256
+      - name: "admin"
+        port: 9000
+        min_memory_mb: 128
+
+    monitoring_enabled: true
+    ssl_enabled: false
+    backup_enabled: true
+    backup_paths:
+      - "/var/www"
+      - "/etc/nginx"
+
+  tasks:
+
+    - name: Gather system facts
+      setup:
+
+    - name: Create application placeholder directories
+      file:
+        path: "/tmp/apps/{{ item.name }}"
+        state: directory
+        mode: '0755'
+      loop: "{{ web_apps }}"
+      when: ansible_memtotal_mb >= item.min_memory_mb
+
+    - name: Report applications that do not meet memory requirements
+      debug:
+        msg: "WARNING: {{ item.name }} requires {{ item.min_memory_mb }}MB but system only has {{ ansible_memtotal_mb }}MB"
+      loop: "{{ web_apps }}"
+      when: ansible_memtotal_mb < item.min_memory_mb
+
+    - name: Create backup directories when backups are enabled
+      file:
+        path: "/tmp/backup/{{ item | basename }}"
+        state: directory
+        mode: '0700'
+      loop: "{{ backup_paths }}"
+      when: backup_enabled | bool
+
+    - name: Display deployment summary
+      debug:
+        msg: |
+          === Deployment Summary ===
+          Applications evaluated: {{ web_apps | length }}
+          Applications ready: {{ web_apps | selectattr('min_memory_mb', 'le', ansible_memtotal_mb) | list | length }}
+          Backup paths configured: {{ backup_paths | length if backup_enabled else 0 }}
+          SSL: {{ "Enabled" if ssl_enabled else "Disabled" }}
+          Monitoring: {{ "Enabled" if monitoring_enabled else "Disabled" }}
+EOF
+Run the playbook:
+ansible-playbook -i inventory deployment-summary.yml
+Deliverable: The final debug task prints a summary block showing the count of applications evaluated, how many meet the memory requirement (all three, on a typical lab VM with at least 512MB RAM), the number of backup paths configured, and the literal strings SSL: Disabled and Monitoring: Enabled reflecting the variable values. Directories for each app appear under /tmp/apps/ and backup directories appear under /tmp/backup/.
+
+Expected Outcomes
+You can write and execute Ansible playbooks that use loop to manage lists and dictionaries of items
+You can control task execution with when conditionals based on facts, registered variables, and custom variables
+You can replace blanket ignore_errors: yes with explicit prerequisite checks and documented failed_when: false conditions, producing clearer and more trustworthy automation
+Troubleshooting
+Issue 1: Loop variable shows as undefined or renders literally as {{ item }} Symptom: The debug output prints {{ item }} instead of a value, or Ansible raises an 'item' is undefined error. Diagnostic hint: Check that the task actually has a loop: key at the same indentation level as the module, and confirm you are not using loop_control.loop_var with a different variable name while still referencing item in the task.
+
+Issue 2: A when condition does not behave as expected Symptom: A task runs when you expected it to skip, or vice versa. Diagnostic hint: Run the playbook with -vv to see the evaluated condition, and confirm the data types being compared (for example, a fact might be a string like "20.04" while your variable is a list of strings, or a boolean variable might actually be a string like "true" requiring the | bool filter).
+
+Conclusion
+In this lab, you built a series of Ansible playbooks that progressively introduced loop constructs, conditional logic, and the combination of both to automate realistic system administration tasks such as package installation, configuration management, and deployment readiness checks. You practiced looping over simple lists, lists of dictionaries, and registered results, and you used conditionals driven by Ansible facts, custom variables, and command output to control exactly when tasks execute. You also replaced blanket ignore_errors: yes usage with explicit prerequisite checks and documented failed_when: false conditions, which is a more maintainable and honest way to handle expected failure cases in production-quality playbooks. To continue building on these skills, practice writing custom Jinja2 templates driven by loop variables, explore loop_control options such as label for cleaner output, and study Ansible's block/rescue/always error-handling constructs as a complement to conditional logic.Xy
+

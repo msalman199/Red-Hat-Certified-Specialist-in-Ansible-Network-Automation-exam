@@ -1,0 +1,57 @@
+---
+- name: Advanced Conditionals with Multiple Criteria
+  hosts: webservers
+  become: yes
+  vars:
+    min_memory_gb: 1
+    required_disk_space_gb: 5
+    supported_os_versions:
+      - "18.04"
+      - "20.04"
+      - "22.04"
+
+  tasks:
+
+    - name: Gather system facts
+      setup:
+
+    - name: Report memory size
+      debug:
+        msg: "System has {{ (ansible_memtotal_mb / 1024) | round(1) }}GB RAM"
+
+    - name: Install memory-aware packages when requirements are met
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - nodejs
+        - npm
+      when:
+        - (ansible_memtotal_mb / 1024) >= min_memory_gb
+        - ansible_distribution == "Ubuntu"
+        - ansible_distribution_version in supported_os_versions
+
+    - name: Check available disk space on root filesystem
+      shell: "set -o pipefail && df -BG / | awk 'NR==2 {print $4}' | tr -d 'G'"
+      args:
+        executable: /bin/bash
+      register: available_space
+      changed_when: false
+
+    - name: Create backup directory only if enough disk space is available
+      file:
+        path: /tmp/backup
+        state: directory
+        mode: '0755'
+      when: available_space.stdout | int >= required_disk_space_gb
+
+    - name: Display system compatibility report
+      debug:
+        msg: |
+          === System Compatibility Report ===
+          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Memory: {{ (ansible_memtotal_mb / 1024) | round(1) }}GB (Required: {{ min_memory_gb }}GB)
+          Available Disk: {{ available_space.stdout }}GB (Required: {{ required_disk_space_gb }}GB)
+          OS Supported: {{ ansible_distribution_version in supported_os_versions }}
+          Memory OK: {{ (ansible_memtotal_mb / 1024) >= min_memory_gb }}
+          Disk OK: {{ available_space.stdout | int >= required_disk_space_gb }}
