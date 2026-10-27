@@ -1,0 +1,36 @@
+---
+- name: Configure VLANs
+  hosts: switch01
+  gather_facts: no
+  connection: network_cli
+  
+  vars:
+    vlans:
+      - vlan_id: 10
+        name: "SALES"
+        description: "Sales Department VLAN"
+      - vlan_id: 20
+        name: "IT"
+        description: "IT Department VLAN"
+      - vlan_id: 30
+        name: "GUEST"
+        description: "Guest Network VLAN"
+        
+  tasks:
+    - name: Configure VLANs
+      vyos.vyos.vyos_config:
+        lines:
+          - "set interfaces ethernet eth2 vif {{ item.vlan_id }} description '{{ item.description }}'"
+          - "set interfaces ethernet eth2 vif {{ item.vlan_id }} address 192.168.{{ item.vlan_id }}.1/24"
+        save: yes
+      loop: "{{ vlans }}"
+      
+    - name: Verify VLAN configuration
+      vyos.vyos.vyos_command:
+        commands:
+          - show interfaces ethernet eth2
+      register: vlan_output
+      
+    - name: Display VLAN configuration
+      debug:
+        var: vlan_output.stdout_lines

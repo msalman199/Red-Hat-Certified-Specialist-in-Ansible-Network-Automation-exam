@@ -1,0 +1,31 @@
+---
+- name: Configure Network Interfaces
+  hosts: network_devices
+  gather_facts: no
+  connection: network_cli
+  
+  vars:
+    ansible_command_timeout: 60
+    
+  tasks:
+    - name: Configure interface eth1 on switch
+      vyos.vyos.vyos_interfaces:
+        config:
+          - name: eth1
+            description: "LAN Interface configured by Ansible"
+            enabled: true
+        state: merged
+      when: inventory_hostname == 'switch01'
+      
+    - name: Configure interface eth1 on router
+      vyos.vyos.vyos_l3_interfaces:
+        config:
+          - name: eth1
+            ipv4:
+              - address: 10.1.1.1/24
+        state: merged
+      when: inventory_hostname == 'router01'
+      
+    - name: Save configuration
+      vyos.vyos.vyos_config:
+        save: yes

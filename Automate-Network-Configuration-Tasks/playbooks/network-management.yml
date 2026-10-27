@@ -1,0 +1,76 @@
+---
+- name: Comprehensive Network Device Management
+  hosts: network_devices
+  gather_facts: no
+  connection: network_cli
+  
+  vars:
+    backup_dir: "/home/student/network-lab/backups"
+    config_timestamp: "{{ ansible_date_time.epoch }}"
+    
+  tasks:
+    - name: Create backup directory
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+      delegate_to: localhost
+      run_once: true
+      
+    - name: Backup current configuration
+      vyos.vyos.vyos_config:
+        backup: yes
+        backup_options:
+          filename: "{{ inventory_hostname }}-{{ config_timestamp }}.cfg"
+          dir_path: "{{ backup_dir }}"
+      register: backup_result
+      
+    - name: Display backup information
+      debug:
+        msg: "Configuration backed up to: {{ backup_result.backup_path }}"
+        
+    - name: Gather device facts
+      vyos.vyos.vyos_facts:
+        gather_subset:
+          - all
+      register: device_facts
+      
+    - name: Generate device inventory report
+      template:
+        src: device_report.j2
+        dest: "{{ backup_dir }}/{{ inventory_hostname }}-report.txt"
+      delegate_to: localhost
+      vars:
+        facts: "{{ device_facts.ansible_facts }}"
+        
+    - name: Configure NTP servers
+      vyos.vyos.vyos_config:
+        lines:
+          - "set system ntp server 0.pool.ntp.org"
+          - "set system ntp server 1.pool.ntp.org"
+        save: yes
+        
+    - name: Configure DNS servers
+      vyos.vyos.vyos_config:
+        lines:
+          - "set system name-server 8.8.8.8"
+          - "set system name-server 8.8.4.4"
+        save: yes
+        
+    - name: Configure SNMP community
+      vyos.vyos.vyos_config:
+        lines:
+          - "set service snmp community public authorization ro"
+          - "set service snmp community public network 192.168.0.0/16"
+        save: yes
+        
+    - name: Verify system services
+      vyos.vyos.vyos_command:
+        commands:
+          - show system ntp
+          - show dns forwarding statistics
+          - show snmp community
+      register: services_output
+      
+    - name: Display services status
+      debug:
+        var: services_output.stdout_lines

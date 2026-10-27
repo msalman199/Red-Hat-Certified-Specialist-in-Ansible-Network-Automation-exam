@@ -1,0 +1,18 @@
+---
+- name: Verify Interface Configuration
+  hosts: network_devices
+  gather_facts: no
+  connection: network_cli
+  
+  tasks:
+    - name: Gather interface facts
+      vyos.vyos.vyos_facts:
+        gather_subset:
+          - interfaces
+      register: device_facts
+      
+    - name: Display interface information
+      debug:
+        msg: "Interface {{ item.key }}: {{ item.value.description | default('No description') }}"
+      loop: "{{ device_facts.ansible_facts.ansible_net_interfaces | dict2items }}"
+      when: item.key == 'eth1'

@@ -1,0 +1,49 @@
+---
+- name: Configure OSPF Dynamic Routing
+  hosts: network_devices
+  gather_facts: no
+  connection: network_cli
+  
+  vars:
+    ospf_config:
+      router01:
+        router_id: "1.1.1.1"
+        networks:
+          - network: "10.1.1.0/24"
+            area: "0.0.0.0"
+          - network: "192.168.10.0/24"
+            area: "0.0.0.0"
+      switch01:
+        router_id: "2.2.2.2"
+        networks:
+          - network: "10.1.1.0/24"
+            area: "0.0.0.0"
+          - network: "192.168.20.0/24"
+            area: "0.0.0.0"
+            
+  tasks:
+    - name: Configure OSPF
+      vyos.vyos.vyos_config:
+        lines:
+          - "set protocols ospf router-id {{ ospf_config[inventory_hostname].router_id }}"
+        save: yes
+      when: inventory_hostname in ospf_config
+      
+    - name: Configure OSPF networks
+      vyos.vyos.vyos_config:
+        lines:
+          - "set protocols ospf area {{ item.area }} network {{ item.network }}"
+        save: yes
+      loop: "{{ ospf_config[inventory_hostname].networks | default([]) }}"
+      when: inventory_hostname in ospf_config
+      
+    - name: Verify OSPF configuration
+      vyos.vyos.vyos_command:
+        commands:
+          - show ip ospf neighbor
+          - show ip ospf database
+      register: ospf_output
+      
+    - name: Display OSPF information
+      debug:
+        var: ospf_output.stdout_lines

@@ -1,0 +1,51 @@
+---
+- name: Network Configuration Rollback
+  hosts: network_devices
+  gather_facts: no
+  connection: network_cli
+  
+  vars:
+    backup_dir: "/home/student/network-lab/backups"
+    
+  tasks:
+    - name: List available backup files
+      find:
+        paths: "{{ backup_dir }}"
+        patterns: "{{ inventory_hostname }}-*.cfg"
+      register: backup_files
+      delegate_to: localhost
+      
+    - name: Display available backups
+      debug:
+        msg: "Available backups: {{ backup_files.files | map(attribute='path') | list }}"
+        
+    - name: Get latest backup file
+      set_fact:
+        latest_backup: "{{ backup_files.files | sort(attribute='mtime') | last }}"
+      when: backup_files.files | length > 0
+      
+    - name: Restore from latest backup
+      vyos.vyos.vyos_config:
+        src: "{{ latest_backup.path }}"
+        save: yes
+      when: latest_backup is defined and restore_from_backup | default(false)
+      
+    - name: Create configuration checkpoint
+      vyos.vyos.vyos_command:
+        commands:
+          - configure
+          - save /tmp/checkpoint-{{ ansible_date_time.epoch }}
+          - exit
+      when: create_checkpoint | default(false)
+      
+    - name: Verify configuration after rollback
+      vyos.vyos.vyos_command:
+        commands:
+          - show configuration
+      register: current_config
+      when: latest_backup is defined and restore_from_backup | default(false)
+      
+    - name: Display rollback status
+      debug:
+        msg: "Configuration rollback completed successfully"
+      when: latest_backup is defined and restore_from_backup | default(false)

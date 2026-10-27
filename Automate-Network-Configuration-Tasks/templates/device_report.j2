@@ -1,0 +1,21 @@
+Device Report for {{ inventory_hostname }}
+Generated on: {{ ansible_date_time.iso8601 }}
+========================================
+
+System Information:
+- Hostname: {{ facts.ansible_net_hostname | default('N/A') }}
+- Model: {{ facts.ansible_net_model | default('N/A') }}
+- Version: {{ facts.ansible_net_version | default('N/A') }}
+- Serial Number: {{ facts.ansible_net_serialnum | default('N/A') }}
+
+Network Interfaces:
+{% for interface, details in facts.ansible_net_interfaces.items() %}
+- {{ interface }}: 
+  - Status: {{ details.operstatus | default('Unknown') }}
+  - Description: {{ details.description | default('No description') }}
+  - MAC Address: {{ details.macaddress | default('N/A') }}
+{% endfor %}
+
+Memory Usage:
+- Total Memory: {{ facts.ansible_net_memtotal_mb | default('N/A') }} MB
+- Free Memory: {{ facts.ansible_net_memfree_mb | default('N/A') }} MB

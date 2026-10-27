@@ -1,0 +1,86 @@
+---
+- name: Network Device Monitoring and Health Checks
+  hosts: network_devices
+  gather_facts: no
+  connection: network_cli
+  
+  vars:
+    health_check_results: []
+    
+  tasks:
+    - name: Check system uptime
+      vyos.vyos.vyos_command:
+        commands:
+          - show system uptime
+      register: uptime_result
+      
+    - name: Check memory usage
+      vyos.vyos.vyos_command:
+        commands:
+          - show system memory
+      register: memory_result
+      
+    - name: Check disk usage
+      vyos.vyos.vyos_command:
+        commands:
+          - show system storage
+      register: disk_result
+      
+    - name: Check interface status
+      vyos.vyos.vyos_command:
+        commands:
+          - show interfaces
+      register: interface_result
+      
+    - name: Check routing table
+      vyos.vyos.vyos_command:
+        commands:
+          - show ip route summary
+      register: route_result
+      
+    - name: Ping connectivity test
+      vyos.vyos.vyos_ping:
+        dest: 8.8.8.8
+        count: 3
+      register: ping_result
+      ignore_errors: yes
+      
+    - name: Compile health check results
+      set_fact:
+        device_health:
+          hostname: "{{ inventory_hostname }}"
+          uptime: "{{ uptime_result.stdout[0] }}"
+          memory_status: "{{ 'OK' if 'MemAvailable' in memory_result.stdout[0] else 'CHECK' }}"
+          disk_status: "{{ 'OK' if 'Filesystem' in disk_result.stdout[0] else 'CHECK' }}"
+          interface_count: "{{ interface_result.stdout[0] | regex_findall('eth\\d+') | length }}"
+          connectivity: "{{ 'OK' if ping_result.packet_loss == '0' else 'FAILED' }}"
+          
+    - name: Display health check summary
+      debug:
+        msg: |
+          Health Check Summary for {{ device_health.hostname }}:
+          - Uptime: {{ device_health.uptime }}
+          - Memory Status: {{ device_health.memory_status }}
+          - Disk Status: {{ device_health.disk_status }}
+          - Active Interfaces: {{ device_health.interface_count }}
+          - Internet Connectivity: {{ device_health.connectivity }}
+          
+    - name: Generate health report
+      copy:
+        content: |
+          Network Health Report - {{ ansible_date_time.iso8601 }}
+          ================================================
+          Device: {{ device_health.hostname }}
+          Uptime: {{ device_health.uptime }}
+          Memory Status: {{ device_health.memory_status }}
+          Disk Status: {{ device_health.disk_status }}
+          Active Interfaces: {{ device_health.interface_count }}
+          Internet Connectivity: {{ device_health.connectivity }}
+          
+          Detailed Interface Information:
+          {{ interface_result.stdout[0] }}
+          
+          Routing Summary:
+          {{ route_result.stdout[0] }}
+        dest: "/home/student/network-lab/reports/{{ inventory_hostname }}-health-{{ ansible_date_time.epoch }}.txt"
+      delegate_to: localhost

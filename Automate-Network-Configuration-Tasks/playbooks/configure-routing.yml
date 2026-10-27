@@ -1,0 +1,47 @@
+---
+- name: Configure Static Routes
+  hosts: network_devices
+  gather_facts: no
+  connection: network_cli
+  
+  vars:
+    routes:
+      router01:
+        - destination: "192.168.10.0/24"
+          next_hop: "10.1.1.2"
+          description: "Route to Sales VLAN"
+        - destination: "192.168.20.0/24"
+          next_hop: "10.1.1.2"
+          description: "Route to IT VLAN"
+      switch01:
+        - destination: "0.0.0.0/0"
+          next_hop: "10.1.1.1"
+          description: "Default route to router"
+          
+  tasks:
+    - name: Configure static routes
+      vyos.vyos.vyos_static_routes:
+        config:
+          - address_families:
+              - afi: ipv4
+                routes:
+                  - dest: "{{ item.destination }}"
+                    next_hops:
+                      - forward_router_address: "{{ item.next_hop }}"
+                        description: "{{ item.description }}"
+        state: merged
+      loop: "{{ routes[inventory_hostname] | default([]) }}"
+      
+    - name: Save routing configuration
+      vyos.vyos.vyos_config:
+        save: yes
+        
+    - name: Verify routing table
+      vyos.vyos.vyos_command:
+        commands:
+          - show ip route
+      register: routing_output
+      
+    - name: Display routing table
+      debug:
+        var: routing_output.stdout_lines
