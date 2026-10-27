@@ -1,0 +1,31 @@
+vendor: "cisco"
+device_type: "router"
+hostname: "R1-CORE"
+enable_secret: "cisco123"
+generation_date: "2024-01-15"
+
+interfaces:
+  - name: "GigabitEthernet0/0"
+    ip_address: "192.168.1.1"
+    subnet_mask: "255.255.255.0"
+    description: "LAN Interface"
+    shutdown: false
+
+  - name: "GigabitEthernet0/1"
+    ip_address: "10.0.0.1"
+    subnet_mask: "255.255.255.252"
+    description: "WAN Interface to ISP"
+    shutdown: false
+
+  - name: "GigabitEthernet0/2"
+    description: "Unused Interface"
+    shutdown: true
+
+static_routes:
+  - network: "0.0.0.0"
+    mask: "0.0.0.0"
+    next_hop: "10.0.0.2"
+
+  - network: "172.16.0.0"
+    mask: "255.255.0.0"
+    next_hop: "192.168.1.254"

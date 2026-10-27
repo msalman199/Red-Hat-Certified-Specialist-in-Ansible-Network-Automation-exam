@@ -1,0 +1,42 @@
+vendor: "juniper"
+device_type: "router"
+hostname: "JR1-CORE"
+domain_name: "network.local"
+generation_date: "2024-01-15"
+
+users:
+  - name: "netadmin"
+    uid: 2001
+    class: "super-user"
+    password: "$1$abc123$xyz789"
+  - name: "monitor"
+    uid: 2002
+    class: "read-only"
+    password: "$1$def456$uvw012"
+
+interfaces:
+  - name: "ge-0/0/0"
+    description: "LAN Interface"
+    unit: 0
+    ip_address: "192.168.1.1"
+    prefix_length: 24
+    disable: false
+
+  - name: "ge-0/0/1"
+    description: "WAN Interface"
+    unit: 0
+    ip_address: "10.0.0.1"
+    prefix_length: 30
+    disable: false
+
+  - name: "ge-0/0/2"
+    description: "Unused Interface, no logical unit configured"
+    disable: true
+
+routing_options:
+  router_id: "1.1.1.1"
+  static_routes:
+    - destination: "0.0.0.0/0"
+      next_hop: "10.0.0.2"
+    - destination: "172.16.0.0/16"
+      next_hop: "192.168.1.254"

@@ -1,0 +1,620 @@
+Lab 19: Generate Configurations with Jinja2 Templates
+Objectives
+By the end of this lab, you will be able to:
+
+Understand the fundamentals of the Jinja2 templating engine
+Create dynamic Jinja2 templates for network device configurations
+Use variables, loops, and conditionals in Jinja2 templates
+Generate customized configuration files for multiple vendors (Cisco and Juniper) from a single data-driven workflow
+Use Jinja2 template inheritance and macros to reduce duplication across templates
+Prerequisites
+Before starting this lab, you should have:
+
+Basic understanding of network device configurations (routers, switches)
+Familiarity with Python programming fundamentals
+Knowledge of YAML data structures
+Experience with command-line interface operations
+This lab assumes a Linux environment with Python 3.8 or later. Install the required Python packages with:
+
+pip3 install jinja2 pyyaml
+Verify the installation:
+
+python3 -c "import jinja2, yaml; print('jinja2', jinja2.__version__); print('yaml', yaml.__version__)"
+You should see version numbers printed for both libraries with no errors.
+
+Lab Environment Setup
+Create the lab directory structure:
+mkdir -p ~/jinja2-lab/{templates,data,output,scripts}
+cd ~/jinja2-lab
+mkdir -p templates/{cisco,juniper,common}
+mkdir -p data/devices
+Verify the structure:
+find ~/jinja2-lab -type d
+Expected output: a directory tree showing templates/cisco, templates/juniper, templates/common, data/devices, output, and scripts under ~/jinja2-lab.
+
+Task 1: Build a Basic Jinja2 Template and Generator
+Subtask 1.1: Create a Basic Cisco Router Template
+Create the template file:
+nano templates/cisco/basic_router.j2
+Add the following content:
+!
+! Configuration for {{ hostname }}
+! Generated on {{ generation_date }}
+!
+version 15.1
+service timestamps debug datetime msec
+service timestamps log datetime msec
+no service password-encryption
+!
+hostname {{ hostname }}
+!
+{% if enable_secret %}
+enable secret {{ enable_secret }}
+{% endif %}
+!
+{% if interfaces %}
+{% for interface in interfaces %}
+interface {{ interface.name }}
+{% if interface.ip_address %}
+ ip address {{ interface.ip_address }} {{ interface.subnet_mask }}
+{% endif %}
+{% if interface.description %}
+ description {{ interface.description }}
+{% endif %}
+{% if interface.shutdown is defined and not interface.shutdown %}
+ no shutdown
+{% else %}
+ shutdown
+{% endif %}
+!
+{% endfor %}
+{% endif %}
+!
+{% if static_routes %}
+{% for route in static_routes %}
+ip route {{ route.network }} {{ route.mask }} {{ route.next_hop }}
+{% endfor %}
+{% endif %}
+!
+line con 0
+line aux 0
+line vty 0 4
+ login
+!
+end
+Subtask 1.2: Create Device Data Files
+Create the first device data file:
+nano data/devices/router1.yml
+Add the following data:
+vendor: "cisco"
+device_type: "router"
+hostname: "R1-CORE"
+enable_secret: "cisco123"
+generation_date: "2024-01-15"
+
+interfaces:
+  - name: "GigabitEthernet0/0"
+    ip_address: "192.168.1.1"
+    subnet_mask: "255.255.255.0"
+    description: "LAN Interface"
+    shutdown: false
+
+  - name: "GigabitEthernet0/1"
+    ip_address: "10.0.0.1"
+    subnet_mask: "255.255.255.252"
+    description: "WAN Interface to ISP"
+    shutdown: false
+
+  - name: "GigabitEthernet0/2"
+    description: "Unused Interface"
+    shutdown: true
+
+static_routes:
+  - network: "0.0.0.0"
+    mask: "0.0.0.0"
+    next_hop: "10.0.0.2"
+
+  - network: "172.16.0.0"
+    mask: "255.255.0.0"
+    next_hop: "192.168.1.254"
+Create a second device data file:
+nano data/devices/router2.yml
+vendor: "cisco"
+device_type: "router"
+hostname: "R2-BRANCH"
+enable_secret: "secure456"
+generation_date: "2024-01-15"
+
+interfaces:
+  - name: "GigabitEthernet0/0"
+    ip_address: "192.168.2.1"
+    subnet_mask: "255.255.255.0"
+    description: "Branch LAN"
+    shutdown: false
+
+  - name: "GigabitEthernet0/1"
+    ip_address: "10.0.0.5"
+    subnet_mask: "255.255.255.252"
+    description: "Link to Core Router"
+    shutdown: false
+
+static_routes:
+  - network: "0.0.0.0"
+    mask: "0.0.0.0"
+    next_hop: "10.0.0.6"
+Subtask 1.3: Create a Python Script to Generate Configurations
+Create the generator script:
+nano scripts/generate_config.py
+Add the following content:
+#!/usr/bin/env python3
+
+import os
+import yaml
+from jinja2 import Environment, FileSystemLoader
+from datetime import datetime
+
+
+def load_device_data(data_file):
+    """Load device data from a YAML file."""
+    try:
+        with open(data_file, 'r') as file:
+            return yaml.safe_load(file)
+    except FileNotFoundError:
+        print(f"Error: Data file {data_file} not found")
+        return None
+    except yaml.YAMLError as e:
+        print(f"Error parsing YAML file: {e}")
+        return None
+
+
+def generate_configuration(template_dir, template_name, data, output_file):
+    """Render a Jinja2 template with the given data and write it to a file."""
+    try:
+        env = Environment(
+            loader=FileSystemLoader(template_dir),
+            trim_blocks=True,
+            lstrip_blocks=True
+        )
+        template = env.get_template(template_name)
+
+        if 'generation_date' not in data:
+            data['generation_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        config = template.render(data)
+
+        with open(output_file, 'w') as file:
+            file.write(config)
+
+        print(f"Configuration generated successfully: {output_file}")
+        return True
+
+    except Exception as e:
+        print(f"Error generating configuration: {e}")
+        return False
+
+
+def main():
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    template_dir = os.path.join(base_dir, "templates/cisco")
+    template_name = "basic_router.j2"
+    data_dir = os.path.join(base_dir, "data/devices")
+    output_dir = os.path.join(base_dir, "output")
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    for filename in sorted(os.listdir(data_dir)):
+        if filename.endswith(('.yml', '.yaml')):
+            print(f"\nProcessing {filename}...")
+
+            data_file = os.path.join(data_dir, filename)
+            device_data = load_device_data(data_file)
+
+            if device_data and device_data.get('vendor') == 'cisco':
+                device_name = os.path.splitext(filename)[0]
+                output_file = os.path.join(output_dir, f"{device_name}_config.txt")
+                generate_configuration(template_dir, template_name, device_data, output_file)
+
+
+if __name__ == "__main__":
+    main()
+Run the generator:
+cd ~/jinja2-lab
+python3 scripts/generate_config.py
+Verify the output:
+ls -la output/
+cat output/router1_config.txt
+Deliverable: Files output/router1_config.txt and output/router2_config.txt exist. router1_config.txt shows hostname R1-CORE, an enable secret cisco123 line, three interface blocks (two with ip address lines and no shutdown, and GigabitEthernet0/2 with shutdown), and two ip route lines.
+
+Task 2: Add Variables, Conditionals, and a Multi-Vendor Juniper Template
+Subtask 2.1: Create the Juniper Template
+Juniper devices use a different configuration syntax (curly-brace hierarchy). Not every interface in real device data has a unit defined (for example, disabled or unused physical interfaces), so the template must guard against a missing unit field.
+
+Create the Juniper template file:
+nano templates/juniper/basic_router.j2
+Add the following content:
+## Configuration for {{ hostname }}
+## Generated on {{ generation_date }}
+## Device Type: {{ device_type | default('Router') }}
+
+system {
+    host-name {{ hostname }};
+{% if domain_name %}
+    domain-name {{ domain_name }};
+{% endif %}
+{% if users %}
+    login {
+{% for user in users %}
+        user {{ user.name }} {
+            uid {{ user.uid | default(2000 + loop.index) }};
+            class {{ user.class | default('operator') }};
+            authentication {
+                encrypted-password "{{ user.password }}";
+            }
+        }
+{% endfor %}
+    }
+{% endif %}
+    services {
+        ssh;
+        netconf {
+            ssh;
+        }
+    }
+}
+
+{% if interfaces %}
+interfaces {
+{% for interface in interfaces %}
+    {{ interface.name }} {
+{% if interface.description %}
+        description "{{ interface.description }}";
+{% endif %}
+{% if interface.unit is defined %}
+        unit {{ interface.unit }} {
+{% if interface.ip_address %}
+            family inet {
+                address {{ interface.ip_address }}/{{ interface.prefix_length }};
+            }
+{% endif %}
+        }
+{% endif %}
+{% if interface.disable is defined and interface.disable %}
+        disable;
+{% endif %}
+    }
+{% endfor %}
+}
+{% endif %}
+
+{% if routing_options %}
+routing-options {
+{% if routing_options.static_routes %}
+{% for route in routing_options.static_routes %}
+    static {
+        route {{ route.destination }} next-hop {{ route.next_hop }};
+    }
+{% endfor %}
+{% endif %}
+{% if routing_options.router_id %}
+    router-id {{ routing_options.router_id }};
+{% endif %}
+}
+{% endif %}
+Note that {% if interface.unit is defined %} wraps the entire unit { ... } block, so interfaces without a unit key (such as a disabled spare interface) simply omit that block instead of rendering broken or empty output.
+
+Subtask 2.2: Create Juniper Device Data (Including an Interface Without a Unit)
+Create the data file:
+nano data/devices/juniper_router1.yml
+Add the following content. Note that the third interface intentionally has no unit field, to exercise the conditional guard:
+vendor: "juniper"
+device_type: "router"
+hostname: "JR1-CORE"
+domain_name: "network.local"
+generation_date: "2024-01-15"
+
+users:
+  - name: "netadmin"
+    uid: 2001
+    class: "super-user"
+    password: "$1$abc123$xyz789"
+  - name: "monitor"
+    uid: 2002
+    class: "read-only"
+    password: "$1$def456$uvw012"
+
+interfaces:
+  - name: "ge-0/0/0"
+    description: "LAN Interface"
+    unit: 0
+    ip_address: "192.168.1.1"
+    prefix_length: 24
+    disable: false
+
+  - name: "ge-0/0/1"
+    description: "WAN Interface"
+    unit: 0
+    ip_address: "10.0.0.1"
+    prefix_length: 30
+    disable: false
+
+  - name: "ge-0/0/2"
+    description: "Unused Interface, no logical unit configured"
+    disable: true
+
+routing_options:
+  router_id: "1.1.1.1"
+  static_routes:
+    - destination: "0.0.0.0/0"
+      next_hop: "10.0.0.2"
+    - destination: "172.16.0.0/16"
+      next_hop: "192.168.1.254"
+Subtask 2.3: Build a Multi-Vendor Generator
+Create the generator script:
+nano scripts/multi_vendor_generator.py
+Add the following content:
+#!/usr/bin/env python3
+
+import os
+import yaml
+from jinja2 import Environment, FileSystemLoader
+from datetime import datetime
+
+
+class ConfigurationGenerator:
+    def __init__(self, base_dir):
+        self.base_dir = base_dir
+        self.templates_dir = os.path.join(base_dir, "templates")
+        self.data_dir = os.path.join(base_dir, "data/devices")
+        self.output_dir = os.path.join(base_dir, "output")
+
+        os.makedirs(self.output_dir, exist_ok=True)
+
+        self.vendor_templates = {
+            'cisco': {
+                'router': 'cisco/basic_router.j2',
+            },
+            'juniper': {
+                'router': 'juniper/basic_router.j2',
+            },
+        }
+
+    def load_device_data(self, data_file):
+        try:
+            with open(data_file, 'r') as file:
+                data = yaml.safe_load(file)
+            if 'generation_date' not in data:
+                data['generation_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            return data
+        except FileNotFoundError:
+            print(f"Error: Data file {data_file} not found")
+            return None
+        except yaml.YAMLError as e:
+            print(f"Error parsing YAML file: {e}")
+            return None
+
+    def get_template_path(self, vendor, device_type):
+        vendor = vendor.lower()
+        device_type = device_type.lower()
+        vendor_map = self.vendor_templates.get(vendor)
+        if not vendor_map:
+            return None
+        return vendor_map.get(device_type, next(iter(vendor_map.values())))
+
+    def generate_configuration(self, template_path, data, output_file):
+        try:
+            template_full_path = os.path.join(self.templates_dir, template_path)
+            template_dir = os.path.dirname(template_full_path)
+            template_name = os.path.basename(template_full_path)
+
+            env = Environment(
+                loader=FileSystemLoader(template_dir),
+                trim_blocks=True,
+                lstrip_blocks=True
+            )
+
+            template = env.get_template(template_name)
+            config = template.render(data)
+
+            with open(output_file, 'w') as file:
+                file.write(config)
+
+            print(f"Configuration generated: {output_file}")
+            return True
+
+        except Exception as e:
+            print(f"Error generating configuration: {e}")
+            return False
+
+    def process_device(self, data_file):
+        print(f"\nProcessing {os.path.basename(data_file)}...")
+
+        device_data = self.load_device_data(data_file)
+        if not device_data:
+            return False
+
+        vendor = device_data.get('vendor', 'cisco')
+        device_type = device_data.get('device_type', 'router')
+
+        print(f"  Vendor: {vendor}")
+        print(f"  Device Type: {device_type}")
+
+        template_path = self.get_template_path(vendor, device_type)
+        if not template_path:
+            print(f"  No template found for {vendor} {device_type}")
+            return False
+
+        print(f"  Template: {template_path}")
+
+        device_name = os.path.splitext(os.path.basename(data_file))[0]
+        output_file = os.path.join(self.output_dir, f"{device_name}_config.txt")
+
+        return self.generate_configuration(template_path, device_data, output_file)
+
+    def process_all_devices(self):
+        print("Starting configuration generation...")
+
+        success_count = 0
+        total_count = 0
+
+        for filename in sorted(os.listdir(self.data_dir)):
+            if filename.endswith(('.yml', '.yaml')):
+                total_count += 1
+                data_file = os.path.join(self.data_dir, filename)
+                if self.process_device(data_file):
+                    success_count += 1
+
+        print("\nSummary:")
+        print(f"  Total devices: {total_count}")
+        print(f"  Successful: {success_count}")
+        print(f"  Failed: {total_count - success_count}")
+
+
+def main():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = os.path.dirname(script_dir)
+
+    generator = ConfigurationGenerator(base_dir)
+    generator.process_all_devices()
+
+
+if __name__ == "__main__":
+    main()
+Run the multi-vendor generator:
+cd ~/jinja2-lab
+python3 scripts/multi_vendor_generator.py
+Inspect the Juniper output specifically:
+cat output/juniper_router1_config.txt
+Deliverable: output/juniper_router1_config.txt contains a system { host-name JR1-CORE; ... } block, an interfaces { ... } block with three interface stanzas, where ge-0/0/0 and ge-0/0/1 each contain a unit 0 { family inet { address ...; } } block, and ge-0/0/2 contains only description "..." and disable; with no unit block and no rendering errors or blank unit lines. Also confirm output/router1_config.txt and output/router2_config.txt were regenerated correctly by the same run.
+
+Task 3: Reduce Duplication with Template Inheritance and Macros
+Jinja2 supports {% macro %} blocks for reusable snippets and {% extends %} / {% block %} for template inheritance. In this task you will factor the repeated "interface" rendering logic out of the Cisco template into a shared macro, demonstrating how larger template libraries stay maintainable.
+
+Subtask 3.1: Create a Macro File for Cisco Interfaces
+Create a common macros file:
+nano templates/common/cisco_macros.j2
+Add the following macro definition:
+{% macro render_interface(interface) -%}
+interface {{ interface.name }}
+{% if interface.ip_address %}
+ ip address {{ interface.ip_address }} {{ interface.subnet_mask }}
+{% endif %}
+{% if interface.description %}
+ description {{ interface.description }}
+{% endif %}
+{% if interface.shutdown is defined and not interface.shutdown %}
+ no shutdown
+{% else %}
+ shutdown
+{% endif %}
+!
+{%- endmacro %}
+Subtask 3.2: Create a Base Template Using Inheritance
+Create a base template that defines the overall structure:
+nano templates/cisco/base_router.j2
+Add the following content:
+!
+! Configuration for {{ hostname }}
+! Generated on {{ generation_date }}
+!
+version 15.1
+service timestamps debug datetime msec
+service timestamps log datetime msec
+no service password-encryption
+!
+hostname {{ hostname }}
+!
+{% if enable_secret %}
+enable secret {{ enable_secret }}
+{% endif %}
+!
+{% block interfaces %}
+{% endblock %}
+!
+{% block routing %}
+{% endblock %}
+!
+line con 0
+line aux 0
+line vty 0 4
+ login
+!
+end
+Subtask 3.3: Create a Child Template That Uses the Macro
+Create a child template that extends the base and imports the macro:
+nano templates/cisco/router_with_macros.j2
+Add the following content:
+{% extends "base_router.j2" %}
+{% import "../common/cisco_macros.j2" as macros %}
+
+{% block interfaces %}
+{% if interfaces %}
+{% for interface in interfaces %}
+{{ macros.render_interface(interface) }}
+{% endfor %}
+{% endif %}
+{% endblock %}
+
+{% block routing %}
+{% if static_routes %}
+{% for route in static_routes %}
+ip route {{ route.network }} {{ route.mask }} {{ route.next_hop }}
+{% endfor %}
+{% endif %}
+{% endblock %}
+Subtask 3.4: Render the Inherited Template
+Create a small script to test inheritance and macros:
+nano scripts/render_with_macros.py
+Add the following content:
+#!/usr/bin/env python3
+
+import os
+import yaml
+from jinja2 import Environment, FileSystemLoader
+
+
+def main():
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    templates_dir = os.path.join(base_dir, "templates/cisco")
+    data_file = os.path.join(base_dir, "data/devices/router1.yml")
+    output_file = os.path.join(base_dir, "output/router1_macro_config.txt")
+
+    env = Environment(
+        loader=FileSystemLoader(templates_dir),
+        trim_blocks=True,
+        lstrip_blocks=True
+    )
+
+    with open(data_file, 'r') as f:
+        device_data = yaml.safe_load(f)
+
+    template = env.get_template("router_with_macros.j2")
+    config = template.render(device_data)
+
+    with open(output_file, 'w') as f:
+        f.write(config)
+
+    print(f"Configuration generated: {output_file}")
+
+
+if __name__ == "__main__":
+    main()
+Run the script:
+cd ~/jinja2-lab
+python3 scripts/render_with_macros.py
+Compare the result to the original template output:
+diff output/router1_config.txt output/router1_macro_config.txt
+cat output/router1_macro_config.txt
+Deliverable: output/router1_macro_config.txt exists and contains the same hostname, enable secret, three interface blocks, and two static routes as output/router1_config.txt. The diff command should show no differences (or only whitespace differences from blank lines), confirming that the inherited, macro-based template produces equivalent output to the original monolithic template while keeping interface-rendering logic in one reusable place.
+
+Expected Outcomes
+Two working Cisco configuration files and one working Juniper configuration file generated entirely from YAML data and Jinja2 templates, with no manual editing of the output
+A single Python script capable of dispatching to the correct vendor template based on a vendor field in the device data
+A refactored Cisco template that uses {% extends %} and a shared {% macro %} to render interfaces, proving that the same output can be produced with less duplicated template code
+Troubleshooting
+Issue 1: jinja2.exceptions.TemplateNotFound when running render_with_macros.py Symptom: the script raises TemplateNotFound: base_router.j2 or TemplateNotFound: ../common/cisco_macros.j2. Diagnostic hint: check that the FileSystemLoader root passed to Environment is the directory that actually contains base_router.j2 (templates/cisco), and that the {% import %} path is relative to that same loader root, not to your current working directory.
+
+Issue 2: Juniper output has an empty unit { } block or a stray blank line where unit should be Symptom: an interface without a unit key still produces unit { } in the rendered configuration. Diagnostic hint: confirm the {% if interface.unit is defined %} conditional wraps the entire unit { ... } stanza in templates/juniper/basic_router.j2, not just the lines inside it, and that the YAML data for that interface truly omits the unit key rather than setting it to an empty value.
+
+Conclusion
+In this lab you built a data-driven configuration generation workflow using Jinja2, moving from a single vendor-specific template to a multi-vendor system that selects the correct template based on device metadata in YAML. You practiced core Jinja2 features including variables, {% for %} loops, {% if %} conditionals with is defined checks, and default filters, and you used those conditionals to correctly handle real-world data inconsistencies such as Juniper interfaces that lack a unit field. Finally, you refactored a monolithic Cisco template into a base template with {% block %} sections and a separate macro file imported with {% import %}, and confirmed the refactored version produced equivalent output to the original. As a next step, consider extending this framework with templates for additional vendors or device roles, or integrating it into an Ansible playbook so that Jinja2-rendered configurations can be pushed directly to lab devices in a controlled test environment.

@@ -1,0 +1,45 @@
+!
+! Configuration for {{ hostname }}
+! Generated on {{ generation_date }}
+!
+version 15.1
+service timestamps debug datetime msec
+service timestamps log datetime msec
+no service password-encryption
+!
+hostname {{ hostname }}
+!
+{% if enable_secret %}
+enable secret {{ enable_secret }}
+{% endif %}
+!
+{% if interfaces %}
+{% for interface in interfaces %}
+interface {{ interface.name }}
+{% if interface.ip_address %}
+ ip address {{ interface.ip_address }} {{ interface.subnet_mask }}
+{% endif %}
+{% if interface.description %}
+ description {{ interface.description }}
+{% endif %}
+{% if interface.shutdown is defined and not interface.shutdown %}
+ no shutdown
+{% else %}
+ shutdown
+{% endif %}
+!
+{% endfor %}
+{% endif %}
+!
+{% if static_routes %}
+{% for route in static_routes %}
+ip route {{ route.network }} {{ route.mask }} {{ route.next_hop }}
+{% endfor %}
+{% endif %}
+!
+line con 0
+line aux 0
+line vty 0 4
+ login
+!
+end

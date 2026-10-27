@@ -1,0 +1,32 @@
+!
+! Configuration for R2-BRANCH
+! Generated on 2024-01-15
+!
+version 15.1
+service timestamps debug datetime msec
+service timestamps log datetime msec
+no service password-encryption
+!
+hostname R2-BRANCH
+!
+enable secret secure456
+!
+interface GigabitEthernet0/0
+ ip address 192.168.2.1 255.255.255.0
+ description Branch LAN
+ no shutdown
+!
+interface GigabitEthernet0/1
+ ip address 10.0.0.5 255.255.255.252
+ description Link to Core Router
+ no shutdown
+!
+!
+ip route 0.0.0.0 0.0.0.0 10.0.0.6
+!
+line con 0
+line aux 0
+line vty 0 4
+ login
+!
+end

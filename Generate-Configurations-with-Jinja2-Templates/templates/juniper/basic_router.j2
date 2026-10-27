@@ -1,0 +1,68 @@
+## Configuration for {{ hostname }}
+## Generated on {{ generation_date }}
+## Device Type: {{ device_type | default('Router') }}
+
+system {
+    host-name {{ hostname }};
+{% if domain_name %}
+    domain-name {{ domain_name }};
+{% endif %}
+{% if users %}
+    login {
+{% for user in users %}
+        user {{ user.name }} {
+            uid {{ user.uid | default(2000 + loop.index) }};
+            class {{ user.class | default('operator') }};
+            authentication {
+                encrypted-password "{{ user.password }}";
+            }
+        }
+{% endfor %}
+    }
+{% endif %}
+    services {
+        ssh;
+        netconf {
+            ssh;
+        }
+    }
+}
+
+{% if interfaces %}
+interfaces {
+{% for interface in interfaces %}
+    {{ interface.name }} {
+{% if interface.description %}
+        description "{{ interface.description }}";
+{% endif %}
+{% if interface.unit is defined %}
+        unit {{ interface.unit }} {
+{% if interface.ip_address %}
+            family inet {
+                address {{ interface.ip_address }}/{{ interface.prefix_length }};
+            }
+{% endif %}
+        }
+{% endif %}
+{% if interface.disable is defined and interface.disable %}
+        disable;
+{% endif %}
+    }
+{% endfor %}
+}
+{% endif %}
+
+{% if routing_options %}
+routing-options {
+{% if routing_options.static_routes %}
+{% for route in routing_options.static_routes %}
+    static {
+        route {{ route.destination }} next-hop {{ route.next_hop }};
+    }
+{% endfor %}
+{% endif %}
+{% if routing_options.router_id %}
+    router-id {{ routing_options.router_id }};
+{% endif %}
+}
+{% endif %}

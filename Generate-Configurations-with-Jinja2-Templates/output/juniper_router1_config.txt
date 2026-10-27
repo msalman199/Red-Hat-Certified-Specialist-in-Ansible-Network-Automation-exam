@@ -1,0 +1,63 @@
+## Configuration for JR1-CORE
+## Generated on 2024-01-15
+## Device Type: router
+
+system {
+    host-name JR1-CORE;
+    domain-name network.local;
+    login {
+        user netadmin {
+            uid 2001;
+            class super-user;
+            authentication {
+                encrypted-password "$1$abc123$xyz789";
+            }
+        }
+        user monitor {
+            uid 2002;
+            class read-only;
+            authentication {
+                encrypted-password "$1$def456$uvw012";
+            }
+        }
+    }
+    services {
+        ssh;
+        netconf {
+            ssh;
+        }
+    }
+}
+
+interfaces {
+    ge-0/0/0 {
+        description "LAN Interface";
+        unit 0 {
+            family inet {
+                address 192.168.1.1/24;
+            }
+        }
+    }
+    ge-0/0/1 {
+        description "WAN Interface";
+        unit 0 {
+            family inet {
+                address 10.0.0.1/30;
+            }
+        }
+    }
+    ge-0/0/2 {
+        description "Unused Interface, no logical unit configured";
+        disable;
+    }
+}
+
+routing-options {
+    static {
+        route 0.0.0.0/0 next-hop 10.0.0.2;
+    }
+    static {
+        route 172.16.0.0/16 next-hop 192.168.1.254;
+    }
+    router-id 1.1.1.1;
+}

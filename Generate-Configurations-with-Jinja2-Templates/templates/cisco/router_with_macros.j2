@@ -1,0 +1,18 @@
+{% extends "base_router.j2" %}
+{% import "../common/cisco_macros.j2" as macros %}
+
+{% block interfaces %}
+{% if interfaces %}
+{% for interface in interfaces %}
+{{ macros.render_interface(interface) }}
+{% endfor %}
+{% endif %}
+{% endblock %}
+
+{% block routing %}
+{% if static_routes %}
+{% for route in static_routes %}
+ip route {{ route.network }} {{ route.mask }} {{ route.next_hop }}
+{% endfor %}
+{% endif %}
+{% endblock %}
