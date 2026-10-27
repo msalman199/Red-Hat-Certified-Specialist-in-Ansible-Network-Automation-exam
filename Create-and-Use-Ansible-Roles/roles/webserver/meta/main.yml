@@ -1,0 +1,18 @@
+---
+galaxy_info:
+  author: Student Lab
+  description: A role for setting up and configuring Apache web server
+  company: Al Nafi Education
+  license: MIT
+  min_ansible_version: 2.9
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+        - bionic
+  galaxy_tags:
+    - web
+    - apache
+    - webserver
+
+dependencies: []

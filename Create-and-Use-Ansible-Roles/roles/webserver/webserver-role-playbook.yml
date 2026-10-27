@@ -1,0 +1,24 @@
+---
+- name: Deploy Web Server using Custom Role
+  hosts: web_servers
+  become: yes
+  vars:
+    webserver_admin_email: "lab-admin@alnafi.com"
+    webserver_port: 8080
+  roles:
+    - webserver
+
+- name: Verify deployment
+  hosts: web_servers
+  tasks:
+    - name: Check if web server is accessible
+      uri:
+        url: "http://{{ ansible_default_ipv4.address }}:8080"
+        method: GET
+        return_content: yes
+      register: web_response
+      delegate_to: localhost
+
+    - name: Display web server response
+      debug:
+        msg: "Web server is responding with status: {{ web_response.status }}"

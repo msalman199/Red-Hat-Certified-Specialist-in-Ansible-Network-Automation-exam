@@ -1,0 +1,13 @@
+---
+# vars file for webserver
+webserver_packages:
+  - "{{ webserver_package }}"
+  - ufw
+
+webserver_directories:
+  - "{{ webserver_document_root }}"
+  - /var/log/apache2
+
+required_modules:
+  - rewrite
+  - ssl

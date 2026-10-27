@@ -1,0 +1,58 @@
+---
+# tasks file for webserver
+- name: Update package cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+
+- name: Install web server packages
+  apt:
+    name: "{{ webserver_packages }}"
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Create web server directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: '0755'
+  loop: "{{ webserver_directories }}"
+
+- name: Enable Apache modules
+  apache2_module:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ required_modules }}"
+  notify: restart webserver
+
+- name: Configure firewall for web server
+  ufw:
+    rule: allow
+    port: "{{ webserver_port }}"
+    proto: tcp
+  when: firewall_enabled
+
+- name: Deploy custom index page
+  template:
+    src: index.html.j2
+    dest: "{{ webserver_document_root }}/{{ webserver_index_file }}"
+    owner: www-data
+    group: www-data
+    mode: '0644'
+  notify: restart webserver
+
+- name: Start and enable web server service
+  systemd:
+    name: "{{ webserver_service }}"
+    state: started
+    enabled: yes
+
+- name: Verify web server is responding
+  uri:
+    url: "http://{{ ansible_default_ipv4.address }}:{{ webserver_port }}"
+    method: GET
+    status_code: 200
+  delegate_to: localhost

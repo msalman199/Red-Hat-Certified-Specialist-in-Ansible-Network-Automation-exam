@@ -1,0 +1,39 @@
+---
+- name: Validate Web Server Role Deployment
+  hosts: web_servers
+  become: yes
+  tasks:
+    - name: Check Apache service status
+      systemd:
+        name: apache2
+      register: apache_service
+
+    - name: Verify Apache is running
+      debug:
+        msg: "Apache service is {{ apache_service.status.ActiveState }}"
+
+    - name: Test web server response
+      uri:
+        url: "http://{{ ansible_default_ipv4.address }}:8080"
+        method: GET
+        return_content: yes
+      register: web_test
+      delegate_to: localhost
+
+    - name: Verify web server content
+      assert:
+        that:
+          - web_test.status == 200
+          - "'Welcome to' in web_test.content"
+        success_msg: "Web server is working correctly"
+        fail_msg: "Web server validation failed"
+
+    - name: Check firewall rules
+      shell: ufw status | grep 8080
+      register: firewall_rules
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Display firewall status
+      debug:
+        var: firewall_rules.stdout_lines

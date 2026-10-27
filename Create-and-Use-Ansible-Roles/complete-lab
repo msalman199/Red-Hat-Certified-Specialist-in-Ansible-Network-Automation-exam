@@ -1,0 +1,416 @@
+Lab 17: Create and Use Ansible Roles
+Objectives
+By the end of this lab, you will be able to:
+
+Understand the concept and benefits of Ansible roles and their standard directory structure
+Create a custom Ansible role for web server configuration using ansible-galaxy
+Apply variables, templates, and handlers within a role to build modular automation
+Import and use community roles from Ansible Galaxy alongside your own custom roles
+Test, validate, and document role functionality using best practices
+Prerequisites
+Before starting this lab, you should have:
+
+Basic understanding of Linux command line operations
+Familiarity with YAML syntax and structure
+Previous experience with Ansible playbooks and tasks
+Knowledge of web server concepts (Apache/Nginx)
+Understanding of SSH key-based authentication
+Install the required tooling on your control node before beginning:
+
+sudo dnf install -y ansible python3-pip tree
+pip3 install --user ansible-lint
+ansible --version
+ansible-galaxy --version
+Lab Environment
+Ready-to-Use Cloud Machines: Al Nafi provides pre-configured Linux-based cloud machines for this lab. Simply click "Start Lab" to access your environment - no need to build your own virtual machines or configure complex networking.
+
+Your lab environment includes:
+
+Control Node: CentOS/RHEL 8 with Ansible pre-installed
+Managed Nodes: 2 Ubuntu 20.04 servers for testing roles
+Pre-configured SSH keys and inventory files
+Internet access for downloading community roles
+Confirm connectivity to your managed nodes before proceeding:
+
+mkdir -p /home/student/ansible-labs
+cd /home/student/ansible-labs
+
+cat > inventory << 'EOF'
+[web_servers]
+node1 ansible_host=10.0.1.10
+node2 ansible_host=10.0.1.11
+
+[all:vars]
+ansible_user=ubuntu
+ansible_ssh_private_key_file=/home/student/.ssh/lab_key
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+EOF
+
+ansible all -i inventory -m ping
+Expected result: Both node1 and node2 return "ping": "pong" with a SUCCESS status. If you see UNREACHABLE, verify the IP addresses and SSH key permissions (chmod 600 /home/student/.ssh/lab_key) before continuing.
+
+Task 1: Build a Custom Webserver Role from Scratch
+Subtask 1.1: Explore the Standard Role Structure
+Create a roles directory and initialize a role skeleton using ansible-galaxy:
+cd /home/student/ansible-labs
+mkdir -p roles
+cd roles
+ansible-galaxy init webserver
+tree webserver/
+Expected result: A webserver/ directory is created containing tasks/, handlers/, templates/, files/, vars/, defaults/, meta/, tests/, and README.md. Each */main.yml file exists but is mostly empty except for a --- header.
+
+Confirm the purpose of each directory by inspecting the generated files:
+cat webserver/meta/main.yml
+ls -la webserver/tasks webserver/handlers webserver/templates
+Deliverable: A working roles/webserver/ skeleton produced by ansible-galaxy init, confirmed with a tree listing showing all seven standard subdirectories.
+
+Subtask 1.2: Define Variables, Tasks, Handlers, and a Template
+Set default variables (lowest precedence, safe to override):
+cd webserver
+cat > defaults/main.yml << 'EOF'
+---
+# defaults file for webserver
+webserver_package: apache2
+webserver_service: apache2
+webserver_port: 80
+webserver_document_root: /var/www/html
+webserver_index_file: index.html
+webserver_admin_email: admin@example.com
+firewall_enabled: true
+EOF
+Define role-internal variables that are computed from the defaults:
+cat > vars/main.yml << 'EOF'
+---
+# vars file for webserver
+webserver_packages:
+  - "{{ webserver_package }}"
+  - ufw
+
+webserver_directories:
+  - "{{ webserver_document_root }}"
+  - /var/log/apache2
+
+required_modules:
+  - rewrite
+  - ssl
+EOF
+Write the main task list:
+cat > tasks/main.yml << 'EOF'
+---
+# tasks file for webserver
+- name: Update package cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+
+- name: Install web server packages
+  apt:
+    name: "{{ webserver_packages }}"
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Create web server directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: '0755'
+  loop: "{{ webserver_directories }}"
+
+- name: Enable Apache modules
+  apache2_module:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ required_modules }}"
+  notify: restart webserver
+
+- name: Configure firewall for web server
+  ufw:
+    rule: allow
+    port: "{{ webserver_port }}"
+    proto: tcp
+  when: firewall_enabled
+
+- name: Deploy custom index page
+  template:
+    src: index.html.j2
+    dest: "{{ webserver_document_root }}/{{ webserver_index_file }}"
+    owner: www-data
+    group: www-data
+    mode: '0644'
+  notify: restart webserver
+
+- name: Start and enable web server service
+  systemd:
+    name: "{{ webserver_service }}"
+    state: started
+    enabled: yes
+
+- name: Verify web server is responding
+  uri:
+    url: "http://{{ ansible_default_ipv4.address }}:{{ webserver_port }}"
+    method: GET
+    status_code: 200
+  delegate_to: localhost
+EOF
+Define handlers for service restarts, triggered by notify:
+cat > handlers/main.yml << 'EOF'
+---
+# handlers file for webserver
+- name: restart webserver
+  systemd:
+    name: "{{ webserver_service }}"
+    state: restarted
+  listen: restart webserver
+
+- name: reload webserver
+  systemd:
+    name: "{{ webserver_service }}"
+    state: reloaded
+  listen: reload webserver
+EOF
+Create the Jinja2 template used by the "Deploy custom index page" task:
+cat > templates/index.html.j2 << 'EOF'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ ansible_hostname }} Web Server</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f4f4f4; }
+        .container { background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header { color: #333; border-bottom: 2px solid #007acc; padding-bottom: 10px; }
+        .highlight { background-color: #e7f3ff; padding: 10px; border-left: 4px solid #007acc; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="header">Welcome to {{ ansible_hostname }}</h1>
+        <div class="highlight">
+            <p><strong>Hostname:</strong> {{ ansible_hostname }}</p>
+            <p><strong>IP Address:</strong> {{ ansible_default_ipv4.address }}</p>
+            <p><strong>OS:</strong> {{ ansible_distribution }} {{ ansible_distribution_version }}</p>
+            <p><strong>Web Server:</strong> {{ webserver_package }}</p>
+            <p><strong>Port:</strong> {{ webserver_port }}</p>
+            <p><strong>Admin Contact:</strong> {{ webserver_admin_email }}</p>
+            <p><strong>Deployment Time:</strong> {{ ansible_date_time.iso8601 }}</p>
+        </div>
+    </div>
+</body>
+</html>
+EOF
+Update role metadata:
+cat > meta/main.yml << 'EOF'
+---
+galaxy_info:
+  author: Student Lab
+  description: A role for setting up and configuring Apache web server
+  company: Al Nafi Education
+  license: MIT
+  min_ansible_version: 2.9
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+        - bionic
+  galaxy_tags:
+    - web
+    - apache
+    - webserver
+
+dependencies: []
+EOF
+Deliverable: A fully populated roles/webserver/ directory with defaults, vars, tasks, handlers, templates, and meta all containing valid YAML/Jinja2. Validate syntax before moving on:
+
+cd /home/student/ansible-labs
+ansible-playbook --syntax-check -i inventory <(cat << 'EOF'
+---
+- hosts: web_servers
+  roles:
+    - webserver
+EOF
+)
+Expected result: Output ends with playbook: /dev/fd/... and no syntax errors reported.
+
+Task 2: Deploy and Validate the Role Against Managed Nodes
+Subtask 2.1: Write and Run a Role-Based Playbook
+Create a playbook that consumes the webserver role with overridden variables:
+cd /home/student/ansible-labs
+cat > webserver-role-playbook.yml << 'EOF'
+---
+- name: Deploy Web Server using Custom Role
+  hosts: web_servers
+  become: yes
+  vars:
+    webserver_admin_email: "lab-admin@alnafi.com"
+    webserver_port: 8080
+  roles:
+    - webserver
+
+- name: Verify deployment
+  hosts: web_servers
+  tasks:
+    - name: Check if web server is accessible
+      uri:
+        url: "http://{{ ansible_default_ipv4.address }}:8080"
+        method: GET
+        return_content: yes
+      register: web_response
+      delegate_to: localhost
+
+    - name: Display web server response
+      debug:
+        msg: "Web server is responding with status: {{ web_response.status }}"
+EOF
+Run the playbook with verbose output:
+ansible-playbook -i inventory webserver-role-playbook.yml -v
+Expected result: The play recap shows ok and changed tasks for both hosts with failed=0. The final debug task prints Web server is responding with status: 200.
+
+Confirm the deployed page manually and test idempotency:
+curl http://10.0.1.10:8080
+curl http://10.0.1.11:8080
+ansible-playbook -i inventory webserver-role-playbook.yml
+Expected result: curl returns the rendered HTML containing the hostname and IP of each node. On the second playbook run, the play recap shows changed=0 for all tasks except the uri verification task, confirming idempotency.
+
+Deliverable: A successful playbook run with failed=0 and confirmed idempotent second run (no unexpected changed tasks).
+
+Subtask 2.2: Import and Combine a Community Role
+Search Ansible Galaxy and install a community Nginx role:
+ansible-galaxy search nginx --platforms EL
+ansible-galaxy install geerlingguy.nginx
+ansible-galaxy list
+Expected result: ansible-galaxy list shows geerlingguy.nginx, <version> alongside any other installed roles.
+
+Create a requirements.yml file to make role installation reproducible:
+cd /home/student/ansible-labs
+cat > requirements.yml << 'EOF'
+---
+- name: geerlingguy.nginx
+  version: "3.1.4"
+EOF
+
+ansible-galaxy install -r requirements.yml --force
+ansible-galaxy list
+Deliverable: requirements.yml present in the project root and ansible-galaxy list confirming geerlingguy.nginx is installed at the pinned version.
+
+Task 3: Test, Validate, and Document the Role
+Subtask 3.1: Create a Validation Playbook
+Write a playbook that asserts the role deployed correctly:
+cat > validate-roles-playbook.yml << 'EOF'
+---
+- name: Validate Web Server Role Deployment
+  hosts: web_servers
+  become: yes
+  tasks:
+    - name: Check Apache service status
+      systemd:
+        name: apache2
+      register: apache_service
+
+    - name: Verify Apache is running
+      debug:
+        msg: "Apache service is {{ apache_service.status.ActiveState }}"
+
+    - name: Test web server response
+      uri:
+        url: "http://{{ ansible_default_ipv4.address }}:8080"
+        method: GET
+        return_content: yes
+      register: web_test
+      delegate_to: localhost
+
+    - name: Verify web server content
+      assert:
+        that:
+          - web_test.status == 200
+          - "'Welcome to' in web_test.content"
+        success_msg: "Web server is working correctly"
+        fail_msg: "Web server validation failed"
+
+    - name: Check firewall rules
+      shell: ufw status | grep 8080
+      register: firewall_rules
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Display firewall status
+      debug:
+        var: firewall_rules.stdout_lines
+EOF
+
+ansible-playbook -i inventory validate-roles-playbook.yml
+Expected result: The assert task reports "msg": "Web server is working correctly" and the play recap shows failed=0. The firewall task shows a line such as 8080 ALLOW Anywhere.
+
+Subtask 3.2: Document the Role
+Add a README describing variables, usage, and testing instructions:
+cat > roles/webserver/README.md << 'EOF'
+# Webserver Role
+
+This Ansible role installs and configures Apache web server on Ubuntu/Debian systems.
+
+## Requirements
+
+- Ubuntu 18.04+ or Debian 9+
+- Ansible 2.9+
+- Sudo privileges on target hosts
+
+## Role Variables
+
+```yaml
+webserver_package: apache2
+webserver_service: apache2
+webserver_port: 80
+webserver_document_root: /var/www/html
+webserver_index_file: index.html
+webserver_admin_email: admin@example.com
+firewall_enabled: true
+Dependencies
+None.
+
+Example Playbook
+- hosts: web_servers
+  become: yes
+  vars:
+    webserver_port: 8080
+    webserver_admin_email: "admin@mycompany.com"
+  roles:
+    - webserver
+Testing
+Run ansible-playbook -i inventory webserver-role-playbook.yml
+Run ansible-playbook -i inventory validate-roles-playbook.yml
+Confirm the assert task passes and curl returns the rendered page
+License
+MIT EOF
+
+
+2. Lint the role to catch style and correctness issues:
+
+```bash
+cat > .ansible-lint << 'EOF'
+---
+exclude_paths:
+  - .cache/
+  - molecule/
+
+use_default_rules: true
+verbosity: 1
+EOF
+
+ansible-lint roles/webserver
+Expected result: ansible-lint completes and either reports zero issues or a short list of style warnings (for example, missing name: on a task). Fix any reported errors (not warnings) before considering the role complete.
+
+Deliverable: A README.md inside roles/webserver/ documenting all variables and usage, plus a clean (or warnings-only) ansible-lint run.
+
+Expected Outcomes
+A fully functional, reusable webserver role deployed to two managed nodes, verified by a passing assert task and a rendered, browsable index page
+A requirements.yml-driven workflow for combining custom roles with community roles from Ansible Galaxy
+A documented, linted role ready to be reused in other playbooks or published to a private Galaxy namespace
+Troubleshooting
+If ansible-playbook reports Unable to find role 'webserver', investigate how Ansible resolves role paths: run ansible-config dump | grep ROLES_PATH, check your current working directory when invoking the playbook, and compare the location of roles/webserver against the paths Ansible actually searches. What does this tell you about how relative role paths are resolved?
+
+If the template task fails with an error such as AnsibleUndefinedVariable: 'ansible_default_ipv4' is undefined, investigate whether gather_facts is enabled for the play and whether the module you are using populates that fact on your target OS. Run ansible <host> -i inventory -m setup -a "filter=ansible_default_ipv4" to inspect what facts are actually available, then determine whether the fix is a missing gather_facts: yes, a typo in the variable name, or a network interface that does not report an IPv4 address in the way you expect.
+
+Conclusion
+In this lab, you built a complete Ansible role from the ground up, moving through all seven standard role directories (tasks, handlers, templates, files, vars, defaults, and meta) and wiring them together into a working webserver role that installs Apache, configures the firewall, deploys a Jinja2-templated index page, and verifies its own deployment. You then combined that custom role with a community role installed via ansible-galaxy and a requirements.yml file, demonstrating how production Ansible projects mix in-house and third-party automation. Finally, you validated the role with an assertion-based test playbook and documented it with a README and an ansible-lint pass, reflecting the practices used to keep roles reusable and maintainable in real automation pipelines. With these skills, you are ready to package roles into Ansible Collections, publish them to a private or public Galaxy namespace, and incorporate automated testing tools such as Molecule to further harden your roles before using them in production environments.

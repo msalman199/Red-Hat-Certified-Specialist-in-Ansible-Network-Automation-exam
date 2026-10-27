@@ -1,0 +1,9 @@
+---
+# defaults file for webserver
+webserver_package: apache2
+webserver_service: apache2
+webserver_port: 80
+webserver_document_root: /var/www/html
+webserver_index_file: index.html
+webserver_admin_email: admin@example.com
+firewall_enabled: true
